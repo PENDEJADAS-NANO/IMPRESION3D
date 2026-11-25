@@ -1,0 +1,3484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Costos y ventas 3D — Pend'jadas Funcionales</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --bg: #eef0ef;
+      --surface: #ffffff;
+      --surface-alt: #f6f8f7;
+      --border: #d5dbd8;
+      --text: #161b18;
+      --text-muted: #56635d;
+      --accent: #c94a0a;
+      --accent-hover: #a83c07;
+      --accent-soft: rgba(201, 74, 10, 0.12);
+      --c-filamento: #2a78d6;
+      --c-luz: #eb6834;
+      --c-mano: #1baf7a;
+      --c-maquina: #8b5cf6;
+      --c-otros: #64748b;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111513;
+        --surface: #191f1c;
+        --surface-alt: #202824;
+        --border: #2c3732;
+        --text: #edf2ef;
+        --text-muted: #98a8a0;
+        --accent: #ff7a33;
+        --accent-hover: #ff9257;
+        --accent-soft: rgba(255, 122, 51, 0.15);
+        --c-filamento: #3987e5;
+        --c-luz: #d95926;
+        --c-mano: #199e70;
+        --c-maquina: #a78bfa;
+        --c-otros: #94a3b8;
+        --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    h1, h2, h3, .section-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .app-shell {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 16px 14px 96px;
+    }
+
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .app-header h1 {
+      font-size: 1.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .app-header h1 span {
+      color: var(--accent);
+    }
+
+    /* Drive Sync Bar */
+    .drive-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .drive-bar-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .drive-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--text-muted);
+    }
+
+    .status-dot.connected {
+      background: var(--success);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.2);
+    }
+
+    .drive-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .drive-controls input {
+      flex: 1 1 240px;
+      min-width: 0;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 5px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .tab-btn {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 10px 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: var(--surface-alt);
+    }
+
+    .tab-btn[aria-selected="true"] {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* Cards & Sections */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .grid-2, .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .help-text {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    input[type="email"],
+    input[type="tel"],
+    select,
+    textarea {
+      width: 100%;
+      background: var(--surface-alt);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="number"] {
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+    }
+
+    /* Input with internal right unit */
+    .unit-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .unit-wrap input {
+      padding-right: 48px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .unit-badge {
+      position: absolute;
+      right: 11px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* Sliders */
+    .slider-block {
+      margin-bottom: 14px;
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .slider-row .unit-wrap {
+      width: 105px;
+      flex-shrink: 0;
+    }
+
+    .range-limits {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-danger {
+      color: var(--danger);
+      border-color: rgba(220, 38, 38, 0.35);
+    }
+
+    .btn-danger.confirming {
+      background: var(--danger);
+      color: #ffffff;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 0.82rem;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    /* Dynamic expenses */
+    .expense-row {
+      display: grid;
+      grid-template-columns: 1fr 140px 38px;
+      gap: 8px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    /* Logo & Photos */
+    .logo-preview-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+    }
+
+    .logo-preview-box img {
+      max-height: 58px;
+      max-width: 140px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #fff;
+      padding: 4px;
+    }
+
+    .photos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .photo-thumb {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      aspect-ratio: 1;
+    }
+
+    .photo-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-thumb button {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(0, 0, 0, 0.72);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    /* Stacked bar & Breakdown */
+    .stacked-bar {
+      display: flex;
+      height: 16px;
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--surface-alt);
+      margin-bottom: 14px;
+    }
+
+    .stacked-seg {
+      height: 100%;
+      transition: width 0.25s ease;
+    }
+
+    .breakdown-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .breakdown-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .breakdown-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    /* KPI Result figures */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .kpi-box {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .kpi-box.highlight {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .kpi-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.35rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .kpi-box.highlight .kpi-value {
+      color: var(--accent);
+    }
+
+    .sub-kpis {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.9rem;
+      padding: 10px 12px;
+      background: var(--surface-alt);
+      border-radius: 8px;
+      margin-bottom: 14px;
+    }
+
+    /* Fixed Bottom Bar */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 2px solid var(--accent);
+      padding: 10px 14px;
+      z-index: 40;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .bottom-bar-inner {
+      max-width: 820px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .bottom-summary {
+      font-size: 0.84rem;
+    }
+
+    .bottom-summary strong {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.98rem;
+    }
+
+    /* Sales & Scanner */
+    .scanner-box {
+      margin-top: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #000;
+      position: relative;
+      display: none;
+    }
+
+    .scanner-box.active {
+      display: block;
+    }
+
+    .scanner-box video {
+      width: 100%;
+      max-height: 240px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .scanner-guide {
+      position: absolute;
+      inset: 20% 15%;
+      border: 2px solid var(--accent);
+      border-radius: 8px;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+      pointer-events: none;
+    }
+
+    .sale-line {
+      background: var(--surface-alt);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .sale-line-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .sale-line-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .sale-line-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .sale-card {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--surface-alt);
+    }
+
+    .sale-card.voided {
+      opacity: 0.6;
+      text-decoration: line-through;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .alert-box {
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      margin-top: 8px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      color: var(--text);
+    }
+
+    /* Charts & Summary */
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .pill-btn {
+      padding: 6px 11px;
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .pill-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .chart-wrap {
+      width: 100%;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    svg.chart-svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.86rem;
+      margin-top: 8px;
+    }
+
+    table.data-table th, table.data-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    .checkbox-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <h1>Costos y ventas <span>3D</span></h1>
+      <span class="badge" id="headerCompanyBadge">Pend'jadas Funcionales</span>
+    </header>
+
+    <!-- Sincronización con Google Drive + Respaldo -->
+    <section class="drive-bar" aria-label="Sincronización con Google Drive">
+      <div class="drive-bar-header">
+        <div class="drive-status">
+          <span class="status-dot" id="driveDot"></span>
+          <span id="driveStatusText">Google Drive: Sin conectar (guardado local activo)</span>
+        </div>
+        <div class="btn-group" style="margin-top:0">
+          <button type="button" class="btn btn-sm" id="btnExportJson">Exportar .json</button>
+          <button type="button" class="btn btn-sm" id="btnImportJson">Importar .json</button>
+          <input type="file" id="importJsonInput" accept=".json" style="display:none" />
+        </div>
+      </div>
+      <div class="drive-controls">
+        <input type="text" id="googleClientId" placeholder="Pega aquí tu Google OAuth Client ID (.apps.googleusercontent.com)" />
+        <button type="button" class="btn btn-primary btn-sm" id="btnConnectDrive">Conectar Google Drive</button>
+        <button type="button" class="btn btn-sm" id="btnSyncUpDrive" style="display:none">Subir a Drive</button>
+        <button type="button" class="btn btn-sm" id="btnSyncDownDrive" style="display:none">Descargar de Drive</button>
+      </div>
+      <div class="help-text" id="driveSubtext" style="margin-top:6px">
+        Sincroniza catálogo, ventas, clientes, logo y fotos en la carpeta <strong>Pendjadas_Funcionales_3D</strong> de tu Drive.
+      </div>
+    </section>
+
+    <!-- Pestañas principales -->
+    <nav class="tabs-nav" role="tablist" aria-label="Secciones principales">
+      <button class="tab-btn" role="tab" id="tab-calc" aria-selected="true" aria-controls="panel-calc" tabindex="0">Calculadora</button>
+      <button class="tab-btn" role="tab" id="tab-sales" aria-selected="false" aria-controls="panel-sales" tabindex="-1">Ventas</button>
+      <button class="tab-btn" role="tab" id="tab-summary" aria-selected="false" aria-controls="panel-summary" tabindex="-1">Resumen</button>
+    </nav>
+
+    <!-- ==================== PESTAÑA 1: CALCULADORA ==================== -->
+    <main id="panel-calc" class="tab-panel active" role="tabpanel" aria-labelledby="tab-calc">
+      <!-- Sección A: Tu empresa y la cotización -->
+      <section class="card">
+        <h2 class="section-title">Tu empresa y la cotización</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="companyName">Nombre de tu empresa</label>
+            <input type="text" id="companyName" value="Pend'jadas Funcionales" />
+          </div>
+          <div class="field">
+            <label for="brandColor">Color de marca</label>
+            <input type="color" id="brandColor" value="#c94a0a" style="height:40px;padding:3px" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="companyContact">Datos de contacto (una línea por dato: NIT, teléfono, correo, dirección)</label>
+          <textarea id="companyContact" rows="3" placeholder="NIT: 000.000.000-0&#10;Tel: +57 300 000 0000&#10;Bogotá, Colombia"></textarea>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label>Logo de la empresa (PNG / JPG)</label>
+            <div class="btn-group" style="margin-top:0">
+              <button type="button" class="btn btn-sm" id="btnUploadLogo">Cargar logo</button>
+              <button type="button" class="btn btn-sm btn-danger" id="btnRemoveLogo" style="display:none">Quitar</button>
+              <input type="file" id="logoInput" accept="image/png,image/jpeg" style="display:none" />
+            </div>
+            <div class="logo-preview-box" id="logoPreviewBox" style="display:none">
+              <img id="logoPreviewImg" alt="Logo empresa" />
+            </div>
+          </div>
+          <div class="field">
+            <label for="pdfFontChoice">Fuente de los PDF</label>
+            <select id="pdfFontChoice">
+              <option value="helvetica">Helvetica (estándar)</option>
+              <option value="custom">Mi fuente cargada (.ttf)</option>
+            </select>
+            <div class="btn-group">
+              <button type="button" class="btn btn-sm" id="btnUploadFontRegular">Cargar .ttf normal</button>
+              <button type="button" class="btn btn-sm" id="btnUploadFontBold">Cargar .ttf negrita</button>
+              <input type="file" id="fontRegularInput" accept=".ttf" style="display:none" />
+              <input type="file" id="fontBoldInput" accept=".ttf" style="display:none" />
+            </div>
+            <span class="help-text" id="fontStatusText">Usando Helvetica estándar.</span>
+          </div>
+        </div>
+        <div class="grid-3" style="margin-top:10px">
+          <div class="field">
+            <label for="quoteClient">Cliente</label>
+            <input type="text" id="quoteClient" placeholder="Nombre del cliente" />
+          </div>
+          <div class="field">
+            <label for="quoteNumber">N.º de cotización</label>
+            <input type="text" id="quoteNumber" />
+          </div>
+          <div class="field">
+            <label for="quoteValidity">Validez de la oferta</label>
+            <div class="unit-wrap">
+              <input type="number" id="quoteValidity" value="15" min="1" />
+              <span class="unit-badge">días</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sección 1: Información de la impresión + Catálogo -->
+      <section class="card">
+        <h2 class="section-title">1. Información de la impresión</h2>
+        <div class="field" style="background:var(--surface-alt);padding:10px;border-radius:8px;border:1px solid var(--border)">
+          <label for="catalogSelect">Productos guardados (Catálogo)</label>
+          <select id="catalogSelect">
+            <option value="">Producto nuevo (sin guardar)</option>
+          </select>
+          <div class="btn-group">
+            <button type="button" class="btn btn-primary btn-sm" id="btnSaveProduct">Guardar producto</button>
+            <button type="button" class="btn btn-sm" id="btnSaveAsNewProduct" style="display:none">Guardar como nuevo</button>
+            <button type="button" class="btn btn-danger btn-sm" id="btnDeleteProduct" style="display:none">Eliminar</button>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:12px">
+          <div class="field">
+            <label for="jobName">Nombre del trabajo</label>
+            <input type="text" id="jobName" value="Soporte de pared" />
+          </div>
+          <div class="field">
+            <label for="currency">Moneda</label>
+            <select id="currency">
+              <option value="COP" selected>COP (Peso colombiano)</option>
+              <option value="USD">USD (Dólar)</option>
+              <option value="EUR">EUR (Euro)</option>
+              <option value="MXN">MXN (Peso mexicano)</option>
+              <option value="PEN">PEN (Sol peruano)</option>
+              <option value="CLP">CLP (Peso chileno)</option>
+              <option value="ARS">ARS (Peso argentino)</option>
+              <option value="BRL">BRL (Real brasileño)</option>
+              <option value="GBP">GBP (Libra esterlina)</option>
+              <option value="CZK">CZK (Corona checa)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="internalCode">Código interno</label>
+            <input type="text" id="internalCode" placeholder="Ej. PF-0001" />
+          </div>
+          <div class="field">
+            <label for="barcodeValue">Código de barras (opcional)</label>
+            <input type="text" id="barcodeValue" placeholder="Ej. 7701234567890" />
+          </div>
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="showInternalCodeInQuote" />
+          <span>Mostrar el código interno en la cotización del cliente</span>
+        </label>
+
+        <div class="grid-3" style="margin-top:12px">
+          <div class="field">
+            <label for="timeHours">Tiempo (horas)</label>
+            <div class="unit-wrap">
+              <input type="number" id="timeHours" value="4" min="0" step="1" />
+              <span class="unit-badge">h</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="timeMinutes">Tiempo (minutos)</label>
+            <div class="unit-wrap">
+              <input type="number" id="timeMinutes" value="30" min="0" max="59" step="1" />
+              <span class="unit-badge">min</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="filamentGrams">Peso del filamento</label>
+            <div class="unit-wrap">
+              <input type="number" id="filamentGrams" value="85" min="0" step="0.1" />
+              <span class="unit-badge">g</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sección 2: Filamento -->
+      <section class="card">
+        <h2 class="section-title">2. Filamento</h2>
+        <div class="grid-3">
+          <div class="field">
+            <label for="filamentType">Tipo</label>
+            <select id="filamentType">
+              <option value="PLA" selected>PLA</option>
+              <option value="PETG">PETG</option>
+              <option value="ASA">ASA</option>
+              <option value="PC Blend">PC Blend</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="spoolPrice">Precio de la bobina</label>
+            <div class="unit-wrap">
+              <input type="number" id="spoolPrice" value="85000" min="0" step="100" />
+              <span class="unit-badge curr-badge">COP</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="spoolWeight">Peso de la bobina</label>
+            <div class="unit-wrap">
+              <input type="number" id="spoolWeight" value="1000" min="1" step="1" />
+              <span class="unit-badge">g</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="slider-block" style="margin-top:8px">
+          <label for="filamentMarginSlider">Margen sobre el filamento</label>
+          <div class="slider-row">
+            <input type="range" id="filamentMarginSlider" min="0" max="100" value="20" />
+            <div class="unit-wrap">
+              <input type="number" id="filamentMargin" min="0" max="100" value="20" />
+              <span class="unit-badge">%</span>
+            </div>
+          </div>
+          <div class="range-limits"><span>0 %</span><span>100 %</span></div>
+          <p class="help-text">Se suma al costo del filamento para cubrir desperdicio, purgas y fallos.</p>
+        </div>
+      </section>
+
+      <!-- Sección 3: Electricidad -->
+      <section class="card">
+        <h2 class="section-title">3. Electricidad</h2>
+        <div class="grid-3">
+          <div class="field">
+            <label for="printerSelect">Impresora</label>
+            <select id="printerSelect">
+              <optgroup label="Prusa">
+                <option value="Prusa MINI+|60">MINI+ (60 W)</option>
+                <option value="Prusa MK3S+|100">MK3S+ (100 W)</option>
+                <option value="Prusa MK4 / MK4S|110" selected>MK4 / MK4S (110 W)</option>
+                <option value="Prusa CORE One|130">CORE One (130 W)</option>
+                <option value="Prusa XL (1 cabezal)|180">XL (1 cabezal) (180 W)</option>
+              </optgroup>
+              <optgroup label="Bambu Lab">
+                <option value="Bambu Lab A1 mini|80">A1 mini (80 W)</option>
+                <option value="Bambu Lab A1|100">A1 (100 W)</option>
+                <option value="Bambu Lab P1S / P1P|130">P1S / P1P (130 W)</option>
+                <option value="Bambu Lab X1 Carbon|150">X1 Carbon (150 W)</option>
+              </optgroup>
+              <optgroup label="Creality">
+                <option value="Creality Ender-3 / V2|100">Ender-3 / Ender-3 V2 (100 W)</option>
+                <option value="Creality Ender-3 V3 SE / KE|90">Ender-3 V3 SE / KE (90 W)</option>
+                <option value="Creality Ender-5 / Plus|130">Ender-5 / Ender-5 Plus (130 W)</option>
+                <option value="Creality K1 / K1C|140">K1 / K1C (140 W)</option>
+              </optgroup>
+              <optgroup label="Otras marcas">
+                <option value="Anycubic Kobra 2 / 3|110">Anycubic Kobra 2 / 3 (110 W)</option>
+                <option value="Elegoo Neptune 4|110">Elegoo Neptune 4 (110 W)</option>
+                <option value="Artillery Sidewinder X2|130">Artillery Sidewinder X2 (130 W)</option>
+              </optgroup>
+              <optgroup label="Personalizada">
+                <option value="custom|110">Otra impresora (escribir vatios)</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field">
+            <label for="printerWatts">Consumo de energía</label>
+            <div class="unit-wrap">
+              <input type="number" id="printerWatts" value="110" min="0" step="1" />
+              <span class="unit-badge">W</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="kwhCost">Costo de energía por kWh</label>
+            <div class="unit-wrap">
+              <input type="number" id="kwhCost" value="900" min="0" step="10" />
+              <span class="unit-badge curr-badge">COP</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sección 4: Mano de obra -->
+      <section class="card">
+        <h2 class="section-title">4. Mano de obra</h2>
+        <div class="grid-2">
+          <div class="field">
+            <label for="prepMinutes">Preparación (tiempo)</label>
+            <div class="unit-wrap">
+              <input type="number" id="prepMinutes" value="10" min="0" step="1" />
+              <span class="unit-badge">min</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="prepRate">Preparación (costo por hora)</label>
+            <div class="unit-wrap">
+              <input type="number" id="prepRate" value="12000" min="0" step="500" />
+              <span class="unit-badge curr-badge">COP</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="postMinutes">Postprocesado (tiempo)</label>
+            <div class="unit-wrap">
+              <input type="number" id="postMinutes" value="15" min="0" step="1" />
+              <span class="unit-badge">min</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="postRate">Postprocesado (costo por hora)</label>
+            <div class="unit-wrap">
+              <input type="number" id="postRate" value="12000" min="0" step="500" />
+              <span class="unit-badge curr-badge">COP</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sección 5: Máquina y mantenimiento -->
+      <section class="card">
+        <h2 class="section-title">5. Máquina y mantenimiento</h2>
+        <div class="field">
+          <label for="printerCost">Costo de la impresora</label>
+          <div class="unit-wrap">
+            <input type="number" id="printerCost" value="2500000" min="0" step="10000" />
+            <span class="unit-badge curr-badge">COP</span>
+          </div>
+        </div>
+
+        <div class="slider-block">
+          <label for="roiYearsSlider">Retorno de la inversión</label>
+          <div class="slider-row">
+            <input type="range" id="roiYearsSlider" min="1" max="10" value="3" />
+            <div class="unit-wrap">
+              <input type="number" id="roiYears" min="1" max="10" value="3" />
+              <span class="unit-badge">años</span>
+            </div>
+          </div>
+          <div class="range-limits"><span>1 año</span><span>10 años</span></div>
+        </div>
+
+        <div class="slider-block">
+          <label for="dailyUsageSlider">Uso comercial diario</label>
+          <div class="slider-row">
+            <input type="range" id="dailyUsageSlider" min="1" max="24" value="6" />
+            <div class="unit-wrap">
+              <input type="number" id="dailyUsage" min="1" max="24" value="6" />
+              <span class="unit-badge">h/día</span>
+            </div>
+          </div>
+          <div class="range-limits"><span>1 h/día</span><span>24 h/día</span></div>
+        </div>
+
+        <div class="slider-block">
+          <label for="repairPctSlider">Costos de reparación</label>
+          <div class="slider-row">
+            <input type="range" id="repairPctSlider" min="0" max="30" value="5" />
+            <div class="unit-wrap">
+              <input type="number" id="repairPct" min="0" max="30" value="5" />
+              <span class="unit-badge">%</span>
+            </div>
+          </div>
+          <div class="range-limits"><span>0 %</span><span>30 %</span></div>
+          <p class="help-text">Porcentaje del precio de compra que se gasta en repuestos y reparaciones.</p>
+        </div>
+      </section>
+
+      <!-- Sección 6: Otros gastos -->
+      <section class="card">
+        <h2 class="section-title">6. Otros gastos</h2>
+        <div id="expensesList"></div>
+        <button type="button" class="btn btn-sm" id="btnAddExpense">+ Agregar gasto</button>
+      </section>
+
+      <!-- Sección 7: Ganancia e IVA -->
+      <section class="card">
+        <h2 class="section-title">7. Ganancia e IVA</h2>
+        <div class="slider-block">
+          <label for="profitPctSlider">Ganancia sobre el costo</label>
+          <div class="slider-row">
+            <input type="range" id="profitPctSlider" min="0" max="200" value="50" />
+            <div class="unit-wrap">
+              <input type="number" id="profitPct" min="0" max="200" value="50" />
+              <span class="unit-badge">%</span>
+            </div>
+          </div>
+          <div class="range-limits"><span>0 %</span><span>200 %</span></div>
+        </div>
+
+        <div class="slider-block">
+          <label for="vatPctSlider">IVA</label>
+          <div class="slider-row">
+            <input type="range" id="vatPctSlider" min="0" max="30" value="19" />
+            <div class="unit-wrap">
+              <input type="number" id="vatPct" min="0" max="30" value="19" />
+              <span class="unit-badge">%</span>
+            </div>
+          </div>
+          <div class="range-limits"><span>0 %</span><span>30 %</span></div>
+        </div>
+      </section>
+
+      <!-- Fotos de la impresión y texto final -->
+      <section class="card">
+        <h2 class="section-title">Fotos y notas de la cotización</h2>
+        <div class="field">
+          <label>Fotos de la impresión (máximo 8 fotos)</label>
+          <div class="btn-group" style="margin-top:0">
+            <button type="button" class="btn btn-sm" id="btnAddPhotos">Cargar fotos</button>
+            <input type="file" id="photosInput" accept="image/*" multiple style="display:none" />
+          </div>
+          <div class="photos-grid" id="photosGrid"></div>
+        </div>
+        <div class="field" style="margin-top:12px">
+          <label for="quoteFooterText">Texto final de la cotización</label>
+          <textarea id="quoteFooterText" rows="2">Gracias por su confianza. Quedamos atentos a cualquier consulta.</textarea>
+        </div>
+      </section>
+
+      <!-- Recuadro Resultado -->
+      <section class="card" id="resultSection">
+        <h2 class="section-title">Resultado</h2>
+
+        <div class="stacked-bar" id="stackedBar" aria-label="Proporción de costos"></div>
+        <ul class="breakdown-list" id="breakdownList"></ul>
+
+        <div class="kpi-grid">
+          <div class="kpi-box">
+            <div class="kpi-label">Costo de producción (sin IVA ni ganancia)</div>
+            <div class="kpi-value" id="resBaseCost">$ 0</div>
+          </div>
+          <div class="kpi-box highlight">
+            <div class="kpi-label">Costo de producción (con IVA y ganancia)</div>
+            <div class="kpi-value" id="resFinalPrice">$ 0</div>
+          </div>
+          <div class="kpi-box">
+            <div class="kpi-label">Total de ganancia</div>
+            <div class="kpi-value" id="resTotalProfit">$ 0</div>
+          </div>
+        </div>
+
+        <div class="sub-kpis">
+          <div>Ganancia (<span id="resProfitPctLabel">50</span> %): <strong class="mono" id="resProfitVal">$ 0</strong></div>
+          <div>Incluye IVA (<span id="resVatPctLabel">19</span> %): <strong class="mono" id="resVatVal">$ 0</strong></div>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" class="btn btn-primary" id="btnDownloadQuotePdf">Descargar cotización (cliente)</button>
+          <button type="button" class="btn" id="btnDownloadInternalPdf">Descargar informe interno (para mí)</button>
+          <button type="button" class="btn" id="btnCopySummary">Copiar resumen</button>
+          <button type="button" class="btn btn-danger" id="btnResetCalc">Restablecer valores</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ==================== PESTAÑA 2: VENTAS ==================== -->
+    <section id="panel-sales" class="tab-panel" role="tabpanel" aria-labelledby="tab-sales">
+      <!-- 1) Cliente -->
+      <div class="card">
+        <h2 class="section-title">1. Cliente y datos para facturar</h2>
+        <div class="field">
+          <label for="savedCustomersSelect">Clientes guardados</label>
+          <select id="savedCustomersSelect">
+            <option value="">Cliente nuevo</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="field">
+            <label for="custName">Nombre o razón social</label>
+            <input type="text" id="custName" placeholder="Consumidor final" />
+          </div>
+          <div class="field">
+            <label for="custDocType">Tipo de documento</label>
+            <select id="custDocType">
+              <option value="CC">CC</option>
+              <option value="NIT">NIT</option>
+              <option value="CE">CE</option>
+              <option value="TI">TI</option>
+              <option value="Pasaporte">Pasaporte</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="custDocNum">Número de documento</label>
+            <input type="text" id="custDocNum" placeholder="Ej. 123456789" />
+          </div>
+          <div class="field">
+            <label for="custEmail">Correo</label>
+            <input type="email" id="custEmail" placeholder="cliente@correo.com" />
+          </div>
+          <div class="field">
+            <label for="custPhone">Teléfono</label>
+            <input type="tel" id="custPhone" placeholder="300 000 0000" />
+          </div>
+          <div class="field">
+            <label for="custAddress">Dirección</label>
+            <input type="text" id="custAddress" placeholder="Dirección" />
+          </div>
+          <div class="field">
+            <label for="custCity">Ciudad</label>
+            <input type="text" id="custCity" value="Bogotá" />
+          </div>
+          <div class="field">
+            <label for="custTaxRegime">Responsabilidad fiscal</label>
+            <select id="custTaxRegime">
+              <option value="No especificada">No especificada</option>
+              <option value="Responsable de IVA">Responsable de IVA</option>
+              <option value="No responsable de IVA">No responsable de IVA</option>
+              <option value="Régimen simple">Régimen simple</option>
+              <option value="Gran contribuyente">Gran contribuyente</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm" id="btnSaveCustomer">Guardar cliente</button>
+          <button type="button" class="btn btn-danger btn-sm" id="btnDeleteCustomer">Eliminar cliente</button>
+        </div>
+      </div>
+
+      <!-- 2) Datos de la venta -->
+      <div class="card">
+        <h2 class="section-title">2. Datos de la venta</h2>
+        <div class="grid-3">
+          <div class="field">
+            <label for="saleDate">Fecha</label>
+            <input type="date" id="saleDate" />
+          </div>
+          <div class="field">
+            <label for="salePayment">Forma de pago</label>
+            <select id="salePayment">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Tarjeta">Tarjeta</option>
+              <option value="Crédito">Crédito</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="saleNotes">Observaciones</label>
+            <input type="text" id="saleNotes" placeholder="Opcional" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 3) Productos de la venta -->
+      <div class="card">
+        <h2 class="section-title">3. Productos de la venta</h2>
+        <div class="field">
+          <label for="scanCodeInput">Código de barras o código interno</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input type="text" id="scanCodeInput" placeholder="Escanea o escribe el código + Enter" style="flex:1;min-width:180px" />
+            <button type="button" class="btn btn-primary" id="btnAddByCode">Agregar</button>
+            <button type="button" class="btn" id="btnScanCamera">Escanear con la cámara</button>
+          </div>
+        </div>
+
+        <div class="scanner-box" id="scannerBox">
+          <video id="scannerVideo" playsinline muted></video>
+          <div class="scanner-guide"></div>
+        </div>
+        <div id="scannerMsg" class="help-text" style="margin-top:6px"></div>
+
+        <!-- Vincular código no encontrado -->
+        <div id="linkCodeBox" class="alert-box" style="display:none">
+          <p><strong>Código no encontrado:</strong> <span class="mono" id="unmatchedCodeText"></span>. Elige a qué producto del catálogo pertenece:</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+            <select id="linkProductSelect" style="flex:1"></select>
+            <button type="button" class="btn btn-primary btn-sm" id="btnLinkAndAdd">Vincular y agregar</button>
+            <button type="button" class="btn btn-sm" id="btnCancelLink">Cancelar</button>
+          </div>
+        </div>
+
+        <div class="field" style="margin-top:12px">
+          <label for="saleCatalogSelect">O elige un producto del catálogo</label>
+          <div style="display:flex;gap:8px">
+            <select id="saleCatalogSelect" style="flex:1"></select>
+            <button type="button" class="btn" id="btnAddFromCatalog">Agregar</button>
+          </div>
+        </div>
+
+        <div id="saleLinesContainer" style="margin-top:14px"></div>
+
+        <div class="kpi-box" style="margin-top:12px">
+          <div class="grid-2">
+            <div>
+              <div>Productos (unidades): <strong class="mono" id="saleTotalUnits">0</strong></div>
+              <div>Subtotal: <strong class="mono" id="saleSubtotal">$ 0</strong></div>
+              <div>IVA: <strong class="mono" id="saleVat">$ 0</strong></div>
+              <div style="font-size:1.1rem;margin-top:4px;color:var(--accent)">Total: <strong class="mono" id="saleTotal">$ 0</strong></div>
+            </div>
+            <div style="color:var(--text-muted);font-size:0.86rem">
+              <div>Costo de producción (solo para ti): <strong class="mono" id="saleCost">$ 0</strong></div>
+              <div>Ganancia sin IVA (solo para ti): <strong class="mono" id="saleProfit">$ 0</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" class="btn btn-primary" id="btnRegisterSale">Registrar venta</button>
+          <button type="button" class="btn btn-primary" id="btnRegisterAndInvoice">Registrar y emitir factura</button>
+          <button type="button" class="btn" id="btnClearSaleForm">Limpiar formulario</button>
+          <button type="button" class="btn" id="btnGoToSummary">Ver resumen de ventas</button>
+        </div>
+      </div>
+
+      <!-- 5) Ventas registradas -->
+      <div class="card">
+        <h2 class="section-title">Ventas registradas</h2>
+        <div id="salesHistoryList"></div>
+        <button type="button" class="btn btn-sm" id="btnShowMoreSales" style="display:none;margin-top:8px">Mostrar más</button>
+      </div>
+
+      <!-- 6) Ajustes de la factura -->
+      <div class="card">
+        <h2 class="section-title">Ajustes de la factura</h2>
+        <div class="grid-3">
+          <div class="field">
+            <label for="invPrefix">Prefijo</label>
+            <input type="text" id="invPrefix" value="FV" />
+          </div>
+          <div class="field">
+            <label for="invStartNum">Primer número de factura</label>
+            <input type="number" id="invStartNum" value="1" min="1" />
+          </div>
+          <div class="field">
+            <label>Siguiente factura</label>
+            <input type="text" id="invNextPreview" readonly class="mono" value="FV-0001" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="invLegalText">Texto legal al pie</label>
+          <textarea id="invLegalText" rows="2">Documento generado por la empresa para control de la venta. No constituye factura electrónica validada por la DIAN.</textarea>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PESTAÑA 3: RESUMEN ==================== -->
+    <section id="panel-summary" class="tab-panel" role="tabpanel" aria-labelledby="tab-summary">
+      <div class="card">
+        <h2 class="section-title">
+          <span>Resumen de ventas</span>
+          <button type="button" class="btn btn-sm" id="btnToggleSummaryTable">Ver datos en tabla</button>
+        </h2>
+
+        <div class="filter-pills" id="dateFilterPills">
+          <button type="button" class="pill-btn" data-range="today">Hoy</button>
+          <button type="button" class="pill-btn" data-range="7d">Últimos 7 días</button>
+          <button type="button" class="pill-btn active" data-range="30d">Últimos 30 días</button>
+          <button type="button" class="pill-btn" data-range="month">Este mes</button>
+          <button type="button" class="pill-btn" data-range="90d">Últimos 90 días</button>
+          <button type="button" class="pill-btn" data-range="year">Este año</button>
+          <button type="button" class="pill-btn" data-range="all">Todo</button>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:10px">
+          <div class="field">
+            <label for="filterFrom">Desde</label>
+            <input type="date" id="filterFrom" />
+          </div>
+          <div class="field">
+            <label for="filterTo">Hasta</label>
+            <input type="date" id="filterTo" />
+          </div>
+        </div>
+        <p class="help-text" id="summaryRangeInfo">No cuentan las ventas anuladas. La ganancia es el subtotal sin IVA menos el costo de producción.</p>
+
+        <div id="summaryEmptyMsg" class="alert-box" style="display:none">
+          No hay ventas registradas en este rango de fechas. Registra una venta en la pestaña «Ventas» o amplía el filtro.
+        </div>
+
+        <div id="summaryContent">
+          <div class="grid-2" style="margin-top:14px">
+            <div class="kpi-box">
+              <div class="kpi-label">Ventas sin IVA</div>
+              <div class="kpi-value" id="sumSalesNoVat">$ 0</div>
+              <div class="help-text">Total con IVA: <span class="mono" id="sumSalesWithVat">$ 0</span></div>
+            </div>
+            <div class="kpi-box">
+              <div class="kpi-label">Productos vendidos</div>
+              <div class="kpi-value" id="sumUnits">0</div>
+              <div class="help-text"><span id="sumSalesCount">0</span> ventas</div>
+            </div>
+            <div class="kpi-box highlight">
+              <div class="kpi-label">Ganancia total</div>
+              <div class="kpi-value" id="sumProfit">$ 0</div>
+              <div class="help-text">Margen: <span class="mono" id="sumMargin">0 %</span> sobre las ventas</div>
+            </div>
+            <div class="kpi-box">
+              <div class="kpi-label">IVA de las ventas</div>
+              <div class="kpi-value" id="sumVat">$ 0</div>
+              <div class="help-text">No se incluye en la ganancia</div>
+            </div>
+          </div>
+
+          <div id="chartsContainer" style="margin-top:16px">
+            <div class="card" style="padding:12px">
+              <h3 style="font-size:1.05rem;margin-bottom:8px">Ventas y ganancia en el tiempo</h3>
+              <div class="chart-wrap" id="chartTime"></div>
+            </div>
+            <div class="card" style="padding:12px">
+              <h3 style="font-size:1.05rem;margin-bottom:8px">Productos más vendidos (unidades)</h3>
+              <div class="chart-wrap" id="chartTopUnits"></div>
+            </div>
+            <div class="card" style="padding:12px">
+              <h3 style="font-size:1.05rem;margin-bottom:8px">Ganancia por producto</h3>
+              <div class="chart-wrap" id="chartTopProfit"></div>
+            </div>
+          </div>
+
+          <div id="tablesContainer" style="display:none;margin-top:16px"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Barra fija inferior (solo visible en pestaña Calculadora) -->
+  <div class="bottom-bar" id="calcBottomBar">
+    <div class="bottom-bar-inner">
+      <div class="bottom-summary">
+        Sin IVA ni ganancia: <strong id="barBaseCost">$ 0</strong> · Con IVA y ganancia: <strong id="barFinalPrice" style="color:var(--accent)">$ 0</strong>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" id="btnScrollResult">Ver resultado</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEYS = {
+        calc: 'pf_3d_calc_v1',
+        company: 'pf_3d_company_v1',
+        catalog: 'pf_3d_catalog_v1',
+        sales: 'pf_3d_sales_v1',
+        customers: 'pf_3d_customers_v1',
+        invSettings: 'pf_3d_inv_settings_v1',
+        activeTab: 'pf_3d_active_tab_v1',
+        driveClientId: 'pf_3d_drive_client_id'
+      };
+
+      const $ = (id) => document.getElementById(id);
+
+      let state = {
+        expenses: [{ name: 'Empaque', amount: 1500 }],
+        photos: [], // Hasta 8 dataURLs (no se guardan en localStorage, sí en Drive)
+        logoDataUrl: '',
+        customFontRegular: '',
+        customFontBold: '',
+        catalog: [],
+        sales: [],
+        customers: [],
+        invSettings: {
+          prefix: 'FV',
+          startNum: 1,
+          legalText: 'Documento generado por la empresa para control de la venta. No constituye factura electrónica validada por la DIAN.'
+        },
+        currentSaleLines: [],
+        editingSaleId: null,
+        salesVisibleLimit: 20,
+        summaryAsTable: false,
+        activeDateRange: '30d'
+      };
+
+      // Utilidades seguras de localStorage
+      function loadLS(key, fallback) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      function saveLS(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+          console.warn('No se pudo guardar en localStorage:', key, e);
+        }
+      }
+
+      function numVal(id, min = 0) {
+        const el = $(id);
+        if (!el) return min;
+        const v = parseFloat(el.value);
+        if (isNaN(v) || v < min) return min;
+        return v;
+      }
+
+      function formatMoney(amount, curr = null) {
+        const currency = curr || ($('currency') ? $('currency').value : 'COP');
+        const noDecimals = currency === 'COP' || currency === 'CLP';
+        const val = isFinite(amount) ? amount : 0;
+        return new Intl.NumberFormat('es-CO', {
+          style: 'currency',
+          currency,
+          minimumFractionDigits: noDecimals ? 0 : 2,
+          maximumFractionDigits: noDecimals ? 0 : 2
+        }).format(val);
+      }
+
+      function roundByCurrency(amount, curr = null) {
+        const currency = curr || ($('currency') ? $('currency').value : 'COP');
+        if (currency === 'COP' || currency === 'CLP') return Math.round(amount);
+        return Math.round(amount * 100) / 100;
+      }
+
+      function todayISO() {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      }
+
+      function todayCompact() {
+        return todayISO().replace(/-/g, '');
+      }
+
+      function sanitizeFilename(str) {
+        return (str || 'documento')
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-zA-Z0-9_-]+/g, '-')
+          .replace(/^-+|-+$/g, '') || 'archivo';
+      }
+
+      // ==================== NAVEGACIÓN DE PESTAÑAS ====================
+      const tabs = Array.from(document.querySelectorAll('.tab-btn'));
+      const panels = Array.from(document.querySelectorAll('.tab-panel'));
+
+      function activateTab(tabId) {
+        tabs.forEach((t) => {
+          const selected = t.id === tabId;
+          t.setAttribute('aria-selected', selected ? 'true' : 'false');
+          t.tabIndex = selected ? 0 : -1;
+        });
+        panels.forEach((p) => {
+          p.classList.toggle('active', p.getAttribute('aria-labelledby') === tabId);
+        });
+        $('calcBottomBar').style.display = tabId === 'tab-calc' ? 'block' : 'none';
+        saveLS(STORAGE_KEYS.activeTab, tabId);
+        if (tabId === 'tab-summary') renderSummary();
+        if (tabId === 'tab-sales') refreshSaleCatalogDropdown();
+      }
+
+      tabs.forEach((tab, idx) => {
+        tab.addEventListener('click', () => activateTab(tab.id));
+        tab.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+            const dir = e.key === 'ArrowRight' ? 1 : -1;
+            const next = (idx + dir + tabs.length) % tabs.length;
+            tabs[next].focus();
+            activateTab(tabs[next].id);
+          }
+        });
+      });
+
+      // ==================== CÁLCULO EXACTO PRUSA ====================
+      function getCalcResults() {
+        const h = numVal('timeHours', 0);
+        const m = numVal('timeMinutes', 0);
+        const horas = h + m / 60;
+
+        const gramos = numVal('filamentGrams', 0);
+        const precioBobina = numVal('spoolPrice', 0);
+        const pesoBobina = Math.max(1, numVal('spoolWeight', 1));
+        const margenFilamento = numVal('filamentMargin', 0);
+        const filamento = (gramos / pesoBobina) * precioBobina * (1 + margenFilamento / 100);
+
+        const watts = numVal('printerWatts', 0);
+        const costoKWh = numVal('kwhCost', 0);
+        const electricidad = (watts / 1000) * horas * costoKWh;
+
+        const prepMin = numVal('prepMinutes', 0);
+        const prepCostoHora = numVal('prepRate', 0);
+        const postMin = numVal('postMinutes', 0);
+        const postCostoHora = numVal('postRate', 0);
+        const manoDeObra = (prepMin / 60) * prepCostoHora + (postMin / 60) * postCostoHora;
+
+        const costoImpresora = numVal('printerCost', 0);
+        const anos = Math.max(1, numVal('roiYears', 1));
+        const horasDiarias = Math.max(1, numVal('dailyUsage', 1));
+        const reparacion = numVal('repairPct', 0);
+        const costoMaquinaPorHora = (costoImpresora * (1 + reparacion / 100)) / (anos * 365 * horasDiarias);
+        const maquina = costoMaquinaPorHora * horas;
+
+        const otros = state.expenses.reduce((acc, item) => acc + Math.max(0, parseFloat(item.amount) || 0), 0);
+
+        const COSTO_BASE = filamento + electricidad + manoDeObra + maquina + otros;
+        const gananciaPct = numVal('profitPct', 0);
+        const ganancia = COSTO_BASE * (gananciaPct / 100);
+        const SUBTOTAL = COSTO_BASE + ganancia;
+        const ivaPct = numVal('vatPct', 0);
+        const iva = SUBTOTAL * (ivaPct / 100);
+        const PRECIO_FINAL = SUBTOTAL + iva;
+        const TOTAL_GANANCIA = PRECIO_FINAL - COSTO_BASE;
+
+        return {
+          horas,
+          filamento,
+          electricidad,
+          manoDeObra,
+          maquina,
+          otros,
+          COSTO_BASE,
+          gananciaPct,
+          ganancia,
+          SUBTOTAL,
+          ivaPct,
+          iva,
+          PRECIO_FINAL,
+          TOTAL_GANANCIA
+        };
+      }
+
+      function updateCalcUI() {
+        const curr = $('currency').value;
+        document.querySelectorAll('.curr-badge').forEach((b) => (b.textContent = curr));
+
+        const r = getCalcResults();
+        const items = [
+          { name: 'Filamento', val: r.filamento, color: 'var(--c-filamento)' },
+          { name: 'Electricidad', val: r.electricidad, color: 'var(--c-luz)' },
+          { name: 'Mano de obra', val: r.manoDeObra, color: 'var(--c-mano)' },
+          { name: 'Máquina y mantenimiento', val: r.maquina, color: 'var(--c-maquina)' },
+          { name: 'Otros gastos', val: r.otros, color: 'var(--c-otros)' }
+        ];
+
+        const bar = $('stackedBar');
+        const list = $('breakdownList');
+        bar.innerHTML = '';
+        list.innerHTML = '';
+
+        items.forEach((it) => {
+          const pct = r.COSTO_BASE > 0 ? (it.val / r.COSTO_BASE) * 100 : 0;
+          const seg = document.createElement('div');
+          seg.className = 'stacked-seg';
+          seg.style.width = `${pct.toFixed(2)}%`;
+          seg.style.backgroundColor = it.color;
+          bar.appendChild(seg);
+
+          const li = document.createElement('li');
+          li.className = 'breakdown-item';
+          li.innerHTML = `
+            <span class="breakdown-left">
+              <span class="color-dot" style="background:${it.color}"></span>
+              <span>${it.name}</span>
+            </span>
+            <span class="mono">${formatMoney(it.val, curr)} (${pct.toFixed(1)} %)</span>
+          `;
+          list.appendChild(li);
+        });
+
+        $('resBaseCost').textContent = formatMoney(r.COSTO_BASE, curr);
+        $('resFinalPrice').textContent = formatMoney(r.PRECIO_FINAL, curr);
+        $('resTotalProfit').textContent = formatMoney(r.TOTAL_GANANCIA, curr);
+        $('resProfitPctLabel').textContent = r.gananciaPct;
+        $('resProfitVal').textContent = formatMoney(r.ganancia, curr);
+        $('resVatPctLabel').textContent = r.ivaPct;
+        $('resVatVal').textContent = formatMoney(r.iva, curr);
+
+        $('barBaseCost').textContent = formatMoney(r.COSTO_BASE, curr);
+        $('barFinalPrice').textContent = formatMoney(r.PRECIO_FINAL, curr);
+
+        persistCalcState();
+      }
+
+      function persistCalcState() {
+        const data = {
+          jobName: $('jobName').value,
+          internalCode: $('internalCode').value,
+          barcodeValue: $('barcodeValue').value,
+          showInternalCodeInQuote: $('showInternalCodeInQuote').checked,
+          currency: $('currency').value,
+          timeHours: $('timeHours').value,
+          timeMinutes: $('timeMinutes').value,
+          filamentGrams: $('filamentGrams').value,
+          filamentType: $('filamentType').value,
+          spoolPrice: $('spoolPrice').value,
+          spoolWeight: $('spoolWeight').value,
+          filamentMargin: $('filamentMargin').value,
+          printerSelect: $('printerSelect').value,
+          printerWatts: $('printerWatts').value,
+          kwhCost: $('kwhCost').value,
+          prepMinutes: $('prepMinutes').value,
+          prepRate: $('prepRate').value,
+          postMinutes: $('postMinutes').value,
+          postRate: $('postRate').value,
+          printerCost: $('printerCost').value,
+          roiYears: $('roiYears').value,
+          dailyUsage: $('dailyUsage').value,
+          repairPct: $('repairPct').value,
+          expenses: state.expenses,
+          profitPct: $('profitPct').value,
+          vatPct: $('vatPct').value
+        };
+        saveLS(STORAGE_KEYS.calc, data);
+      }
+
+      function persistCompanyState() {
+        $('headerCompanyBadge').textContent = $('companyName').value || "Pend'jadas Funcionales";
+        const data = {
+          companyName: $('companyName').value,
+          brandColor: $('brandColor').value,
+          companyContact: $('companyContact').value,
+          logoDataUrl: state.logoDataUrl,
+          pdfFontChoice: $('pdfFontChoice').value,
+          quoteFooterText: $('quoteFooterText').value
+        };
+        saveLS(STORAGE_KEYS.company, data);
+      }
+
+      // Sincronización de Sliders
+      function bindSlider(sliderId, inputId, min, max) {
+        const s = $(sliderId);
+        const inp = $(inputId);
+        s.addEventListener('input', () => {
+          inp.value = s.value;
+          updateCalcUI();
+        });
+        inp.addEventListener('input', () => {
+          let v = parseFloat(inp.value);
+          if (isNaN(v)) v = min;
+          v = Math.max(min, Math.min(max, v));
+          s.value = v;
+          updateCalcUI();
+        });
+      }
+
+      bindSlider('filamentMarginSlider', 'filamentMargin', 0, 100);
+      bindSlider('roiYearsSlider', 'roiYears', 1, 10);
+      bindSlider('dailyUsageSlider', 'dailyUsage', 1, 24);
+      bindSlider('repairPctSlider', 'repairPct', 0, 30);
+      bindSlider('profitPctSlider', 'profitPct', 0, 200);
+      bindSlider('vatPctSlider', 'vatPct', 0, 30);
+
+      // Selector de impresoras
+      $('printerSelect').addEventListener('change', (e) => {
+        const [model, watts] = e.target.value.split('|');
+        if (model !== 'custom') {
+          $('printerWatts').value = watts;
+        }
+        updateCalcUI();
+      });
+
+      // Lista dinámica de otros gastos
+      function renderExpenses() {
+        const box = $('expensesList');
+        box.innerHTML = '';
+        state.expenses.forEach((exp, idx) => {
+          const row = document.createElement('div');
+          row.className = 'expense-row';
+          row.innerHTML = `
+            <input type="text" placeholder="Concepto (ej. Empaque)" value="${exp.name}" data-idx="${idx}" class="exp-name" />
+            <div class="unit-wrap">
+              <input type="number" min="0" step="100" value="${exp.amount}" data-idx="${idx}" class="exp-amt" />
+              <span class="unit-badge curr-badge">${$('currency').value}</span>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm" data-idx="${idx}" title="Quitar">✕</button>
+          `;
+          box.appendChild(row);
+        });
+
+        box.querySelectorAll('.exp-name').forEach((el) => {
+          el.addEventListener('input', (e) => {
+            state.expenses[e.target.dataset.idx].name = e.target.value;
+            persistCalcState();
+          });
+        });
+        box.querySelectorAll('.exp-amt').forEach((el) => {
+          el.addEventListener('input', (e) => {
+            state.expenses[e.target.dataset.idx].amount = Math.max(0, parseFloat(e.target.value) || 0);
+            updateCalcUI();
+          });
+        });
+        box.querySelectorAll('button').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            state.expenses.splice(Number(e.target.dataset.idx), 1);
+            renderExpenses();
+            updateCalcUI();
+          });
+        });
+      }
+
+      $('btnAddExpense').addEventListener('click', () => {
+        state.expenses.push({ name: '', amount: 0 });
+        renderExpenses();
+        updateCalcUI();
+      });
+
+      // Escuchar cambios generales en calculadora y empresa
+      [
+        'jobName', 'internalCode', 'barcodeValue', 'showInternalCodeInQuote', 'currency',
+        'timeHours', 'timeMinutes', 'filamentGrams', 'filamentType', 'spoolPrice', 'spoolWeight',
+        'printerWatts', 'kwhCost', 'prepMinutes', 'prepRate', 'postMinutes', 'postRate', 'printerCost'
+      ].forEach((id) => {
+        $(id).addEventListener('input', updateCalcUI);
+      });
+
+      ['companyName', 'brandColor', 'companyContact', 'pdfFontChoice', 'quoteFooterText'].forEach((id) => {
+        $(id).addEventListener('input', persistCompanyState);
+      });
+
+      // Logo y fotos
+      $('btnUploadLogo').addEventListener('click', () => $('logoInput').click());
+      $('logoInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.logoDataUrl = reader.result;
+          $('logoPreviewImg').src = state.logoDataUrl;
+          $('logoPreviewBox').style.display = 'flex';
+          $('btnRemoveLogo').style.display = 'inline-flex';
+          persistCompanyState();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      $('btnRemoveLogo').addEventListener('click', () => {
+        state.logoDataUrl = '';
+        $('logoInput').value = '';
+        $('logoPreviewBox').style.display = 'none';
+        $('btnRemoveLogo').style.display = 'none';
+        persistCompanyState();
+      });
+
+      // Fuentes .ttf personalizadas
+      function readFontFile(inputEl, targetKey) {
+        const file = inputEl.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result.split(',')[1];
+          state[targetKey] = base64;
+          $('pdfFontChoice').value = 'custom';
+          $('fontStatusText').textContent = 'Fuente .ttf cargada lista para PDF.';
+          persistCompanyState();
+        };
+        reader.readAsDataURL(file);
+      }
+
+      $('btnUploadFontRegular').addEventListener('click', () => $('fontRegularInput').click());
+      $('btnUploadFontBold').addEventListener('click', () => $('fontBoldInput').click());
+      $('fontRegularInput').addEventListener('change', (e) => readFontFile(e.target, 'customFontRegular'));
+      $('fontBoldInput').addEventListener('change', (e) => readFontFile(e.target, 'customFontBold'));
+
+      // Fotos de impresión (hasta 8)
+      function renderPhotos() {
+        const grid = $('photosGrid');
+        grid.innerHTML = '';
+        state.photos.forEach((src, i) => {
+          const div = document.createElement('div');
+          div.className = 'photo-thumb';
+          div.innerHTML = `<img src="${src}" alt="Foto ${i + 1}" /><button type="button" data-idx="${i}">✕</button>`;
+          div.querySelector('button').addEventListener('click', () => {
+            state.photos.splice(i, 1);
+            renderPhotos();
+          });
+          grid.appendChild(div);
+        });
+      }
+
+      $('btnAddPhotos').addEventListener('click', () => $('photosInput').click());
+      $('photosInput').addEventListener('change', (e) => {
+        const files = Array.from(e.target.files || []);
+        const available = 8 - state.photos.length;
+        files.slice(0, available).forEach((f) => {
+          const r = new FileReader();
+          r.onload = () => {
+            if (state.photos.length < 8) {
+              state.photos.push(r.result);
+              renderPhotos();
+            }
+          };
+          r.readAsDataURL(f);
+        });
+        e.target.value = '';
+      });
+
+      // Copiar resumen y Restablecer
+      $('btnCopySummary').addEventListener('click', async () => {
+        const r = getCalcResults();
+        const curr = $('currency').value;
+        const txt = [
+          `Trabajo: ${$('jobName').value}`,
+          `Tiempo: ${$('timeHours').value} h ${$('timeMinutes').value} min | Filamento: ${$('filamentGrams').value} g (${$('filamentType').value})`,
+          `Filamento: ${formatMoney(r.filamento, curr)} | Electricidad: ${formatMoney(r.electricidad, curr)} | Mano de obra: ${formatMoney(r.manoDeObra, curr)} | Máquina: ${formatMoney(r.maquina, curr)} | Otros: ${formatMoney(r.otros, curr)}`,
+          `Costo sin IVA ni ganancia: ${formatMoney(r.COSTO_BASE, curr)}`,
+          `Ganancia (${r.gananciaPct}%): ${formatMoney(r.ganancia, curr)}`,
+          `IVA (${r.ivaPct}%): ${formatMoney(r.iva, curr)}`,
+          `Precio final con IVA: ${formatMoney(r.PRECIO_FINAL, curr)}`,
+          `Total de ganancia: ${formatMoney(r.TOTAL_GANANCIA, curr)}`
+        ].join('\n');
+        try {
+          await navigator.clipboard.writeText(txt);
+          alert('Resumen copiado al portapapeles.');
+        } catch {
+          alert(txt);
+        }
+      });
+
+      $('btnResetCalc').addEventListener('click', () => {
+        localStorage.removeItem(STORAGE_KEYS.calc);
+        location.reload();
+      });
+
+      $('btnScrollResult').addEventListener('click', () => {
+        $('resultSection').scrollIntoView({ behavior: 'smooth' });
+      });
+
+      // ==================== CATÁLOGO DE PRODUCTOS ====================
+      let deleteProdConfirm = false;
+
+      function refreshCatalogUI() {
+        const sel = $('catalogSelect');
+        const current = sel.value;
+        sel.innerHTML = '<option value="">Producto nuevo (sin guardar)</option>';
+        state.catalog.forEach((p) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = `${p.codigoInterno ? `[${p.codigoInterno}] ` : ''}${p.nombre} — ${formatMoney(p.precio)}`;
+          sel.appendChild(opt);
+        });
+        sel.value = state.catalog.some((p) => p.id === current) ? current : '';
+        updateCatalogButtons();
+        refreshSaleCatalogDropdown();
+      }
+
+      function updateCatalogButtons() {
+        const hasSel = Boolean($('catalogSelect').value);
+        $('btnSaveProduct').textContent = hasSel ? 'Actualizar producto' : 'Guardar producto';
+        $('btnSaveAsNewProduct').style.display = hasSel ? 'inline-flex' : 'none';
+        $('btnDeleteProduct').style.display = hasSel ? 'inline-flex' : 'none';
+        deleteProdConfirm = false;
+        $('btnDeleteProduct').textContent = 'Eliminar';
+        $('btnDeleteProduct').classList.remove('confirming');
+      }
+
+      function buildProductFromForm(existingId = null) {
+        const r = getCalcResults();
+        return {
+          id: existingId || 'prod_' + Date.now(),
+          nombre: $('jobName').value.trim() || 'Producto sin nombre',
+          codigoInterno: $('internalCode').value.trim(),
+          codigoBarras: $('barcodeValue').value.trim(),
+          horas: numVal('timeHours', 0),
+          minutos: numVal('timeMinutes', 0),
+          gramos: numVal('filamentGrams', 0),
+          tipoFilamento: $('filamentType').value,
+          impresora: $('printerSelect').value,
+          watts: numVal('printerWatts', 0),
+          gananciaPct: numVal('profitPct', 0),
+          otrosGastos: JSON.parse(JSON.stringify(state.expenses)),
+          costo: Math.round(r.COSTO_BASE * 100) / 100,
+          precio: Math.round(r.SUBTOTAL * 100) / 100,
+          iva: numVal('vatPct', 0),
+          actualizado: new Date().toISOString()
+        };
+      }
+
+      function upsertCatalogProduct(asNew = false) {
+        const selectedId = asNew ? null : ($('catalogSelect').value || null);
+        const item = buildProductFromForm(selectedId);
+        if (selectedId) {
+          const idx = state.catalog.findIndex((p) => p.id === selectedId);
+          if (idx >= 0) state.catalog[idx] = item;
+          else state.catalog.push(item);
+        } else {
+          state.catalog.push(item);
+        }
+        saveLS(STORAGE_KEYS.catalog, state.catalog);
+        refreshCatalogUI();
+        $('catalogSelect').value = item.id;
+        updateCatalogButtons();
+        autoSyncDriveIfConnected();
+      }
+
+      $('btnSaveProduct').addEventListener('click', () => {
+        upsertCatalogProduct(false);
+        alert('Producto guardado en el catálogo.');
+      });
+
+      $('btnSaveAsNewProduct').addEventListener('click', () => {
+        upsertCatalogProduct(true);
+        alert('Guardado como producto nuevo en el catálogo.');
+      });
+
+      $('btnDeleteProduct').addEventListener('click', () => {
+        const id = $('catalogSelect').value;
+        if (!id) return;
+        if (!deleteProdConfirm) {
+          deleteProdConfirm = true;
+          $('btnDeleteProduct').textContent = 'Confirmar eliminación';
+          $('btnDeleteProduct').classList.add('confirming');
+          return;
+        }
+        state.catalog = state.catalog.filter((p) => p.id !== id);
+        saveLS(STORAGE_KEYS.catalog, state.catalog);
+        $('catalogSelect').value = '';
+        refreshCatalogUI();
+        autoSyncDriveIfConnected();
+      });
+
+      $('catalogSelect').addEventListener('change', () => {
+        const id = $('catalogSelect').value;
+        updateCatalogButtons();
+        if (!id) return;
+        const p = state.catalog.find((x) => x.id === id);
+        if (!p) return;
+        $('jobName').value = p.nombre || '';
+        $('internalCode').value = p.codigoInterno || '';
+        $('barcodeValue').value = p.codigoBarras || '';
+        $('timeHours').value = p.horas ?? 0;
+        $('timeMinutes').value = p.minutos ?? 0;
+        $('filamentGrams').value = p.gramos ?? 0;
+        if (p.tipoFilamento) $('filamentType').value = p.tipoFilamento;
+        if (p.impresora) $('printerSelect').value = p.impresora;
+        if (p.watts !== undefined) $('printerWatts').value = p.watts;
+        if (p.gananciaPct !== undefined) {
+          $('profitPct').value = p.gananciaPct;
+          $('profitPctSlider').value = p.gananciaPct;
+        }
+        if (p.iva !== undefined) {
+          $('vatPct').value = p.iva;
+          $('vatPctSlider').value = p.iva;
+        }
+        if (Array.isArray(p.otrosGastos)) {
+          state.expenses = JSON.parse(JSON.stringify(p.otrosGastos));
+          renderExpenses();
+        }
+        updateCalcUI();
+      });
+
+      // ==================== GENERACIÓN DE PDF (jsPDF 2.5.1) ====================
+      function initPdfDoc() {
+        if (!window.jspdf || !window.jspdf.jsPDF) {
+          alert('No se pudo cargar la librería jsPDF. Verifica tu conexión a internet e intenta de nuevo.');
+          return null;
+        }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+        let fontName = 'helvetica';
+        if ($('pdfFontChoice').value === 'custom' && state.customFontRegular) {
+          try {
+            doc.addFileToVFS('CustomReg.ttf', state.customFontRegular);
+            doc.addFont('CustomReg.ttf', 'CustomFont', 'normal');
+            if (state.customFontBold) {
+              doc.addFileToVFS('CustomBold.ttf', state.customFontBold);
+              doc.addFont('CustomBold.ttf', 'CustomFont', 'bold');
+            }
+            fontName = 'CustomFont';
+          } catch (e) {
+            console.warn('Error cargando fuente personalizada, usando Helvetica:', e);
+            fontName = 'helvetica';
+          }
+        }
+        doc.setFont(fontName, 'normal');
+        return { doc, fontName };
+      }
+
+      function hexToRgb(hex) {
+        const clean = (hex || '#c94a0a').replace('#', '');
+        const num = parseInt(clean, 16);
+        return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+      }
+
+      function drawPdfHeader(doc, fontName, titleText) {
+        const [r, g, b] = hexToRgb($('brandColor').value);
+        let textX = 15;
+        if (state.logoDataUrl) {
+          try {
+            doc.addImage(state.logoDataUrl, 'PNG', 15, 12, 34, 34);
+            textX = 54;
+          } catch (e) {
+            console.warn('No se pudo incrustar logo:', e);
+          }
+        }
+        doc.setFont(fontName, 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(r, g, b);
+        doc.text($('companyName').value || "Pend'jadas Funcionales", textX, 22);
+
+        doc.setFont(fontName, 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(70, 70, 70);
+        const contactLines = ($('companyContact').value || '').split('\n').filter(Boolean);
+        doc.text(contactLines.slice(0, 4), textX, 29);
+
+        doc.setDrawColor(r, g, b);
+        doc.setLineWidth(1.2);
+        doc.line(15, 50, 195, 50);
+
+        doc.setFont(fontName, 'bold');
+        doc.setFontSize(15);
+        doc.setTextColor(25, 25, 25);
+        doc.text(titleText, 15, 60);
+        return 68;
+      }
+
+      function addPdfPageNumbers(doc, fontName) {
+        const total = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= total; i++) {
+          doc.setPage(i);
+          doc.setFont(fontName, 'normal');
+          doc.setFontSize(8.5);
+          doc.setTextColor(120, 120, 120);
+          doc.text(`Página ${i} de ${total}`, 195, 288, { align: 'right' });
+        }
+      }
+
+      function drawPhotosInPdf(doc, yStart) {
+        if (!state.photos.length) return yStart;
+        let y = yStart + 6;
+        if (y > 235) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFontSize(11);
+        doc.text('Imágenes de referencia:', 15, y);
+        y += 5;
+        let x = 15;
+        state.photos.forEach((img, idx) => {
+          if (idx > 0 && idx % 4 === 0) {
+            x = 15;
+            y += 44;
+          }
+          if (y > 240) {
+            doc.addPage();
+            y = 20;
+            x = 15;
+          }
+          try {
+            doc.addImage(img, 'JPEG', x, y, 41, 41);
+          } catch {}
+          x += 45;
+        });
+        return y + 48;
+      }
+
+      // 1. Cotización cliente (NUNCA muestra costo ni ganancia)
+      $('btnDownloadQuotePdf').addEventListener('click', () => {
+        upsertCatalogProduct(false); // Cada descarga guarda/actualiza el producto
+        const pdf = initPdfDoc();
+        if (!pdf) return;
+        const { doc, fontName } = pdf;
+        const r = getCalcResults();
+        const curr = $('currency').value;
+        const clientName = $('quoteClient').value.trim() || 'Cliente';
+        const qNum = $('quoteNumber').value.trim() || `COT-${todayCompact()}`;
+
+        let y = drawPdfHeader(doc, fontName, 'COTIZACIÓN');
+        doc.setFont(fontName, 'normal');
+        doc.setFontSize(10.5);
+        doc.setTextColor(40, 40, 40);
+
+        doc.text(`N.º Cotización: ${qNum}`, 15, y);
+        doc.text(`Fecha: ${todayISO()}`, 130, y);
+        y += 6;
+        doc.text(`Cliente: ${clientName}`, 15, y);
+        doc.text(`Validez: ${numVal('quoteValidity', 15)} días`, 130, y);
+        y += 10;
+
+        doc.setFont(fontName, 'bold');
+        doc.text('Detalle del trabajo solicitado:', 15, y);
+        y += 6;
+        doc.setFont(fontName, 'normal');
+        const showCode = $('showInternalCodeInQuote').checked && $('internalCode').value.trim();
+        doc.text(`Trabajo: ${$('jobName').value}${showCode ? ` (Cód. ${$('internalCode').value.trim()})` : ''}`, 15, y);
+        y += 6;
+        doc.text(`Material: ${$('filamentType').value} | Tiempo estimado de fabricación: ${$('timeHours').value} h ${$('timeMinutes').value} min`, 15, y);
+        y += 10;
+
+        // Solo Subtotal (con ganancia, sin IVA), IVA y Total
+        doc.setFillColor(245, 246, 245);
+        doc.rect(15, y, 180, 28, 'F');
+        y += 7;
+        doc.text(`Subtotal: ${formatMoney(r.SUBTOTAL, curr)}`, 20, y);
+        y += 7;
+        doc.text(`IVA (${r.ivaPct} %): ${formatMoney(r.iva, curr)}`, 20, y);
+        y += 8;
+        doc.setFont(fontName, 'bold');
+        doc.setFontSize(12);
+        doc.text(`TOTAL A PAGAR: ${formatMoney(r.PRECIO_FINAL, curr)}`, 20, y);
+        y += 12;
+
+        y = drawPhotosInPdf(doc, y);
+
+        if (y > 255) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.setFont(fontName, 'normal');
+        doc.setFontSize(10);
+        const footerLines = doc.splitTextToSize($('quoteFooterText').value || '', 180);
+        doc.text(footerLines, 15, y + 6);
+
+        addPdfPageNumbers(doc, fontName);
+        doc.save(`Cotizacion-${sanitizeFilename(qNum)}-${sanitizeFilename(clientName)}.pdf`);
+      });
+
+      // 2. Informe interno (todo el detalle)
+      $('btnDownloadInternalPdf').addEventListener('click', () => {
+        const pdf = initPdfDoc();
+        if (!pdf) return;
+        const { doc, fontName } = pdf;
+        const r = getCalcResults();
+        const curr = $('currency').value;
+        const codeOrName = $('internalCode').value.trim() || $('jobName').value.trim();
+
+        let y = drawPdfHeader(doc, fontName, 'INFORME INTERNO DE COSTOS');
+        doc.setFont(fontName, 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(35, 35, 35);
+
+        doc.text(`Trabajo: ${$('jobName').value} | Código interno: ${$('internalCode').value || 'N/A'}`, 15, y);
+        y += 6;
+        doc.text(`Tiempo: ${$('timeHours').value} h ${$('timeMinutes').value} min | Filamento: ${$('filamentGrams').value} g (${$('filamentType').value})`, 15, y);
+        y += 9;
+
+        doc.setFont(fontName, 'bold');
+        doc.text('Desglose de costos:', 15, y);
+        y += 6;
+        doc.setFont(fontName, 'normal');
+        const rows = [
+          ['Filamento', r.filamento],
+          ['Electricidad', r.electricidad],
+          ['Mano de obra', r.manoDeObra],
+          ['Máquina y mantenimiento', r.maquina],
+          ['Otros gastos', r.otros]
+        ];
+        rows.forEach(([label, val]) => {
+          const pct = r.COSTO_BASE > 0 ? ((val / r.COSTO_BASE) * 100).toFixed(1) : '0.0';
+          doc.text(`• ${label}: ${formatMoney(val, curr)} (${pct} %)`, 18, y);
+          y += 5.5;
+        });
+
+        y += 4;
+        doc.setFont(fontName, 'bold');
+        doc.text(`Costo de producción (sin IVA ni ganancia): ${formatMoney(r.COSTO_BASE, curr)}`, 15, y);
+        y += 6;
+        doc.text(`Ganancia (${r.gananciaPct} %): ${formatMoney(r.ganancia, curr)} | Subtotal: ${formatMoney(r.SUBTOTAL, curr)}`, 15, y);
+        y += 6;
+        doc.text(`IVA (${r.ivaPct} %): ${formatMoney(r.iva, curr)} | Precio final: ${formatMoney(r.PRECIO_FINAL, curr)}`, 15, y);
+        y += 6;
+        doc.text(`Total de ganancia: ${formatMoney(r.TOTAL_GANANCIA, curr)}`, 15, y);
+        y += 10;
+
+        doc.setFont(fontName, 'bold');
+        doc.text('Parámetros técnicos aplicados:', 15, y);
+        y += 6;
+        doc.setFont(fontName, 'normal');
+        const printerLabel = $('printerSelect').options[$('printerSelect').selectedIndex].text;
+        doc.text(`Bobina: ${formatMoney(numVal('spoolPrice'), curr)} / ${$('spoolWeight').value} g (+${$('filamentMargin').value} % desperdicio)`, 15, y);
+        y += 5.5;
+        doc.text(`Impresora: ${printerLabel} (${$('printerWatts').value} W) | Energía: ${formatMoney(numVal('kwhCost'), curr)}/kWh`, 15, y);
+        y += 5.5;
+        doc.text(`Mano de obra: Prep ${$('prepMinutes').value} min (${formatMoney(numVal('prepRate'), curr)}/h) + Post ${$('postMinutes').value} min (${formatMoney(numVal('postRate'), curr)}/h)`, 15, y);
+        y += 5.5;
+        doc.text(`Amortización: ${$('roiYears').value} años | Uso: ${$('dailyUsage').value} h/día | Reparación: ${$('repairPct').value} %`, 15, y);
+        y += 8;
+
+        drawPhotosInPdf(doc, y);
+        addPdfPageNumbers(doc, fontName);
+        doc.save(`Informe-interno-${sanitizeFilename(codeOrName)}.pdf`);
+      });
+
+      // ==================== PESTAÑA 2: VENTAS Y FACTURACIÓN ====================
+      function refreshCustomersDropdown() {
+        const sel = $('savedCustomersSelect');
+        sel.innerHTML = '<option value="">Cliente nuevo</option>';
+        state.customers.forEach((c) => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `${c.nombre} (${c.tipoDoc} ${c.numDoc})`;
+          sel.appendChild(opt);
+        });
+      }
+
+      $('savedCustomersSelect').addEventListener('change', () => {
+        const c = state.customers.find((x) => x.id === $('savedCustomersSelect').value);
+        if (!c) {
+          $('custName').value = '';
+          $('custDocNum').value = '';
+          $('custEmail').value = '';
+          $('custPhone').value = '';
+          $('custAddress').value = '';
+          $('custCity').value = 'Bogotá';
+          return;
+        }
+        $('custName').value = c.nombre || '';
+        $('custDocType').value = c.tipoDoc || 'CC';
+        $('custDocNum').value = c.numDoc || '';
+        $('custEmail').value = c.correo || '';
+        $('custPhone').value = c.telefono || '';
+        $('custAddress').value = c.direccion || '';
+        $('custCity').value = c.ciudad || 'Bogotá';
+        $('custTaxRegime').value = c.regimen || 'No especificada';
+      });
+
+      function saveCurrentCustomer(silent = false) {
+        const nombre = $('custName').value.trim() || 'Consumidor final';
+        const numDoc = $('custDocNum').value.trim();
+        const tipoDoc = $('custDocType').value;
+        const custObj = {
+          id: $('savedCustomersSelect').value || 'cust_' + Date.now(),
+          nombre,
+          tipoDoc,
+          numDoc,
+          correo: $('custEmail').value.trim(),
+          telefono: $('custPhone').value.trim(),
+          direccion: $('custAddress').value.trim(),
+          ciudad: $('custCity').value.trim(),
+          regimen: $('custTaxRegime').value
+        };
+        const existingIdx = state.customers.findIndex(
+          (c) => (numDoc && c.numDoc === numDoc && c.tipoDoc === tipoDoc) || c.id === custObj.id
+        );
+        if (existingIdx >= 0) {
+          custObj.id = state.customers[existingIdx].id;
+          state.customers[existingIdx] = custObj;
+        } else {
+          state.customers.push(custObj);
+        }
+        saveLS(STORAGE_KEYS.customers, state.customers);
+        refreshCustomersDropdown();
+        $('savedCustomersSelect').value = custObj.id;
+        if (!silent) alert('Cliente guardado.');
+        return custObj;
+      }
+
+      $('btnSaveCustomer').addEventListener('click', () => saveCurrentCustomer(false));
+      $('btnDeleteCustomer').addEventListener('click', () => {
+        const id = $('savedCustomersSelect').value;
+        if (!id) return;
+        state.customers = state.customers.filter((c) => c.id !== id);
+        saveLS(STORAGE_KEYS.customers, state.customers);
+        refreshCustomersDropdown();
+      });
+
+      function refreshSaleCatalogDropdown() {
+        const sel = $('saleCatalogSelect');
+        const linkSel = $('linkProductSelect');
+        sel.innerHTML = '<option value="">Selecciona un producto...</option>';
+        linkSel.innerHTML = '';
+        state.catalog.forEach((p) => {
+          const label = `${p.codigoInterno ? `[${p.codigoInterno}] ` : ''}${p.nombre}`;
+          const o1 = document.createElement('option');
+          o1.value = p.id;
+          o1.textContent = label;
+          sel.appendChild(o1);
+
+          const o2 = document.createElement('option');
+          o2.value = p.id;
+          o2.textContent = label;
+          linkSel.appendChild(o2);
+        });
+      }
+
+      function addProductToSale(product) {
+        const curr = $('currency').value;
+        const existing = state.currentSaleLines.find((l) => l.productId === product.id);
+        if (existing) {
+          existing.qty += 1;
+        } else {
+          state.currentSaleLines.push({
+            productId: product.id,
+            nombre: product.nombre,
+            codigoInterno: product.codigoInterno || '',
+            codigoBarras: product.codigoBarras || '',
+            qty: 1,
+            precioUnit: roundByCurrency(product.precio || 0, curr),
+            ivaPct: product.iva ?? 19,
+            costoUnit: roundByCurrency(product.costo || 0, curr),
+            missingData: !product.precio || !product.costo
+          });
+        }
+        renderSaleLines();
+      }
+
+      function renderSaleLines() {
+        const box = $('saleLinesContainer');
+        const curr = $('currency').value;
+        box.innerHTML = '';
+
+        let totalUnits = 0;
+        let sumSub = 0;
+        let sumVat = 0;
+        let sumTotal = 0;
+        let sumCost = 0;
+
+        state.currentSaleLines.forEach((line, idx) => {
+          const sub = roundByCurrency(line.qty * line.precioUnit, curr);
+          const vat = roundByCurrency(sub * (line.ivaPct / 100), curr);
+          const tot = roundByCurrency(sub + vat, curr);
+          const cost = roundByCurrency(line.qty * line.costoUnit, curr);
+
+          totalUnits += line.qty;
+          sumSub += sub;
+          sumVat += vat;
+          sumTotal += tot;
+          sumCost += cost;
+
+          const div = document.createElement('div');
+          div.className = 'sale-line';
+          div.innerHTML = `
+            <div class="sale-line-top">
+              <div>
+                <strong>${line.nombre}</strong>
+                <div class="help-text">${line.codigoInterno ? `Cód: ${line.codigoInterno} ` : ''}${line.codigoBarras ? `· Barras: ${line.codigoBarras}` : ''}</div>
+              </div>
+              <button type="button" class="btn btn-danger btn-sm" data-idx="${idx}">Quitar</button>
+            </div>
+            ${line.missingData ? '<div class="alert-box" style="margin-bottom:8px">Este producto no tiene precio o costo guardado. Puedes editarlo aquí o actualizarlo en la Calculadora.</div>' : ''}
+            <div class="sale-line-grid">
+              <div class="field">
+                <label>Cantidad</label>
+                <input type="number" min="1" step="1" value="${line.qty}" data-field="qty" data-idx="${idx}" />
+              </div>
+              <div class="field">
+                <label>Precio unit. sin IVA</label>
+                <input type="number" min="0" step="1" value="${line.precioUnit}" data-field="precioUnit" data-idx="${idx}" />
+              </div>
+              <div class="field">
+                <label>IVA %</label>
+                <input type="number" min="0" max="100" step="1" value="${line.ivaPct}" data-field="ivaPct" data-idx="${idx}" />
+              </div>
+              <div class="field">
+                <label>Costo unitario</label>
+                <input type="number" min="0" step="1" value="${line.costoUnit}" data-field="costoUnit" data-idx="${idx}" />
+              </div>
+            </div>
+            <div style="text-align:right;margin-top:6px;font-size:0.9rem">
+              Total línea: <strong class="mono">${formatMoney(tot, curr)}</strong>
+            </div>
+          `;
+          box.appendChild(div);
+        });
+
+        box.querySelectorAll('input').forEach((inp) => {
+          inp.addEventListener('input', (e) => {
+            const idx = Number(e.target.dataset.idx);
+            const field = e.target.dataset.field;
+            state.currentSaleLines[idx][field] = Math.max(0, parseFloat(e.target.value) || 0);
+            renderSaleLines();
+          });
+        });
+
+        box.querySelectorAll('button').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            state.currentSaleLines.splice(Number(e.target.dataset.idx), 1);
+            renderSaleLines();
+          });
+        });
+
+        const profit = roundByCurrency(sumSub - sumCost, curr);
+        $('saleTotalUnits').textContent = totalUnits;
+        $('saleSubtotal').textContent = formatMoney(sumSub, curr);
+        $('saleVat').textContent = formatMoney(sumVat, curr);
+        $('saleTotal').textContent = formatMoney(sumTotal, curr);
+        $('saleCost').textContent = formatMoney(sumCost, curr);
+        $('saleProfit').textContent = formatMoney(profit, curr);
+      }
+
+      // Buscar por código (teclado/pistola USB + Enter o botón)
+      let pendingUnmatchedCode = '';
+
+      function handleCodeLookup(rawCode) {
+        const code = (rawCode || '').trim();
+        if (!code) return;
+        const found = state.catalog.find(
+          (p) =>
+            (p.codigoBarras && p.codigoBarras.toLowerCase() === code.toLowerCase()) ||
+            (p.codigoInterno && p.codigoInterno.toLowerCase() === code.toLowerCase())
+        );
+        if (found) {
+          addProductToSale(found);
+          $('scanCodeInput').value = '';
+          $('linkCodeBox').style.display = 'none';
+        } else {
+          pendingUnmatchedCode = code;
+          $('unmatchedCodeText').textContent = code;
+          $('linkCodeBox').style.display = 'block';
+        }
+      }
+
+      $('btnAddByCode').addEventListener('click', () => handleCodeLookup($('scanCodeInput').value));
+      $('scanCodeInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          handleCodeLookup($('scanCodeInput').value);
+        }
+      });
+
+      $('btnLinkAndAdd').addEventListener('click', () => {
+        const prodId = $('linkProductSelect').value;
+        const prod = state.catalog.find((p) => p.id === prodId);
+        if (!prod) return;
+        prod.codigoBarras = pendingUnmatchedCode;
+        saveLS(STORAGE_KEYS.catalog, state.catalog);
+        refreshCatalogUI();
+        addProductToSale(prod);
+        $('linkCodeBox').style.display = 'none';
+        $('scanCodeInput').value = '';
+        autoSyncDriveIfConnected();
+      });
+
+      $('btnCancelLink').addEventListener('click', () => {
+        $('linkCodeBox').style.display = 'none';
+      });
+
+      $('btnAddFromCatalog').addEventListener('click', () => {
+        const prod = state.catalog.find((p) => p.id === $('saleCatalogSelect').value);
+        if (prod) addProductToSale(prod);
+      });
+
+      // Escáner con cámara (BarcodeDetector + fallback ZXing)
+      let cameraStream = null;
+      let scanInterval = null;
+
+      function stopCameraScanner() {
+        if (scanInterval) {
+          clearInterval(scanInterval);
+          scanInterval = null;
+        }
+        if (cameraStream) {
+          cameraStream.getTracks().forEach((t) => t.stop());
+          cameraStream = null;
+        }
+        $('scannerBox').classList.remove('active');
+      }
+
+      async function loadZXingFallback() {
+        if (window.ZXing) return window.ZXing;
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+          s.onload = () => resolve(window.ZXing);
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      $('btnScanCamera').addEventListener('click', async () => {
+        if (cameraStream) {
+          stopCameraScanner();
+          $('scannerMsg').textContent = 'Cámara detenida.';
+          return;
+        }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          $('scannerMsg').textContent = 'Este navegador no soporta acceso a cámara. Usa el campo de texto o lector USB.';
+          return;
+        }
+        try {
+          $('scannerMsg').textContent = 'Iniciando cámara trasera...';
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } }
+          });
+          const video = $('scannerVideo');
+          video.srcObject = cameraStream;
+          await video.play();
+          $('scannerBox').classList.add('active');
+          $('scannerMsg').textContent = 'Apunta el código de barras o QR dentro del recuadro naranja.';
+
+          if ('BarcodeDetector' in window) {
+            const detector = new window.BarcodeDetector({
+              formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
+            });
+            scanInterval = setInterval(async () => {
+              try {
+                const codes = await detector.detect(video);
+                if (codes && codes.length > 0) {
+                  const val = codes[0].rawValue;
+                  if (navigator.vibrate) navigator.vibrate(120);
+                  stopCameraScanner();
+                  $('scannerMsg').textContent = `Código leído: ${val}`;
+                  handleCodeLookup(val);
+                }
+              } catch {}
+            }, 350);
+          } else {
+            const ZXing = await loadZXingFallback();
+            const codeReader = new ZXing.BrowserMultiFormatReader();
+            codeReader.decodeFromVideoElement(video, (result) => {
+              if (result) {
+                const val = result.getText();
+                if (navigator.vibrate) navigator.vibrate(120);
+                codeReader.reset();
+                stopCameraScanner();
+                $('scannerMsg').textContent = `Código leído: ${val}`;
+                handleCodeLookup(val);
+              }
+            });
+          }
+        } catch (err) {
+          stopCameraScanner();
+          $('scannerMsg').textContent = 'No se pudo acceder a la cámara (permiso denegado o sin cámara disponible).';
+        }
+      });
+
+      // Consecutivos de venta y factura
+      function getNextSaleNumber() {
+        let max = 0;
+        state.sales.forEach((s) => {
+          const m = String(s.saleNumber || '').match(/(\d+)$/);
+          if (m) max = Math.max(max, parseInt(m[1], 10));
+        });
+        return `V-${String(max + 1).padStart(4, '0')}`;
+      }
+
+      function getNextInvoiceNumber() {
+        const prefix = ($('invPrefix').value || 'FV').trim();
+        let max = Math.max(0, (parseInt($('invStartNum').value, 10) || 1) - 1);
+        state.sales.forEach((s) => {
+          if (s.invoiceNumber) {
+            const m = String(s.invoiceNumber).match(/(\d+)$/);
+            if (m) max = Math.max(max, parseInt(m[1], 10));
+          }
+        });
+        return `${prefix}-${String(max + 1).padStart(4, '0')}`;
+      }
+
+      function updateInvoicePreview() {
+        $('invNextPreview').value = getNextInvoiceNumber();
+        state.invSettings = {
+          prefix: $('invPrefix').value.trim() || 'FV',
+          startNum: Math.max(1, parseInt($('invStartNum').value, 10) || 1),
+          legalText: $('invLegalText').value
+        };
+        saveLS(STORAGE_KEYS.invSettings, state.invSettings);
+      }
+
+      ['invPrefix', 'invStartNum', 'invLegalText'].forEach((id) => {
+        $(id).addEventListener('input', updateInvoicePreview);
+      });
+
+      // Generar Factura PDF A4
+      function generateInvoicePdf(sale) {
+        const pdf = initPdfDoc();
+        if (!pdf) return;
+        const { doc, fontName } = pdf;
+        const curr = sale.currency || 'COP';
+
+        let y = drawPdfHeader(doc, fontName, 'FACTURA DE VENTA');
+        doc.setFont(fontName, 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(35, 35, 35);
+
+        doc.text(`Factura N.º: ${sale.invoiceNumber}`, 15, y);
+        doc.text(`Fecha: ${sale.date}`, 130, y);
+        y += 6;
+        doc.text(`Cliente: ${sale.customer.nombre}`, 15, y);
+        doc.text(`Documento: ${sale.customer.tipoDoc} ${sale.customer.numDoc}`, 130, y);
+        y += 6;
+        if (sale.customer.direccion || sale.customer.ciudad) {
+          doc.text(`Dirección: ${sale.customer.direccion || ''} - ${sale.customer.ciudad || ''}`, 15, y);
+          y += 6;
+        }
+        if (sale.customer.telefono || sale.customer.correo) {
+          doc.text(`Contacto: ${sale.customer.telefono || ''} | ${sale.customer.correo || ''}`, 15, y);
+          y += 6;
+        }
+        doc.text(`Forma de pago: ${sale.paymentMethod} | Resp. fiscal: ${sale.customer.regimen || 'No especificada'}`, 15, y);
+        y += 9;
+
+        // Encabezado tabla
+        doc.setFillColor(235, 238, 236);
+        doc.rect(15, y, 180, 8, 'F');
+        doc.setFont(fontName, 'bold');
+        doc.text('Descripción', 17, y + 5.5);
+        doc.text('Cant.', 102, y + 5.5);
+        doc.text('Precio unit.', 120, y + 5.5);
+        doc.text('IVA', 152, y + 5.5);
+        doc.text('Total', 172, y + 5.5);
+        y += 12;
+
+        doc.setFont(fontName, 'normal');
+        sale.lines.forEach((l) => {
+          if (y > 250) {
+            doc.addPage();
+            y = 20;
+          }
+          const sub = roundByCurrency(l.qty * l.precioUnit, curr);
+          const tot = roundByCurrency(sub * (1 + l.ivaPct / 100), curr);
+          doc.text(String(l.nombre).slice(0, 42), 17, y);
+          doc.text(String(l.qty), 104, y);
+          doc.text(formatMoney(l.precioUnit, curr), 120, y);
+          doc.text(`${l.ivaPct}%`, 152, y);
+          doc.text(formatMoney(tot, curr), 170, y);
+          y += 6.5;
+        });
+
+        y += 5;
+        doc.line(120, y, 195, y);
+        y += 6;
+        doc.text(`Subtotal: ${formatMoney(sale.subtotal, curr)}`, 130, y);
+        y += 6;
+        doc.text(`IVA: ${formatMoney(sale.vat, curr)}`, 130, y);
+        y += 7;
+        doc.setFont(fontName, 'bold');
+        doc.setFontSize(11.5);
+        doc.text(`TOTAL: ${formatMoney(sale.total, curr)}`, 130, y);
+        y += 10;
+
+        if (sale.notes) {
+          doc.setFont(fontName, 'normal');
+          doc.setFontSize(9.5);
+          doc.text(`Observaciones: ${sale.notes}`, 15, y);
+          y += 8;
+        }
+
+        doc.setFont(fontName, 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(90, 90, 90);
+        const legalLines = doc.splitTextToSize(state.invSettings.legalText || '', 180);
+        doc.text(legalLines, 15, Math.max(y + 4, 260));
+
+        addPdfPageNumbers(doc, fontName);
+        doc.save(`Factura-${sanitizeFilename(sale.invoiceNumber)}-${sanitizeFilename(sale.customer.nombre)}.pdf`);
+      }
+
+      // Registrar venta
+      function submitSale(issueInvoice) {
+        if (!state.currentSaleLines.length) {
+          alert('Agrega al menos un producto a la venta.');
+          return;
+        }
+        for (const l of state.currentSaleLines) {
+          if (l.qty <= 0 || l.precioUnit <= 0) {
+            alert('Todas las líneas deben tener cantidad mayor a 0 y precio mayor a 0.');
+            return;
+          }
+        }
+        const custName = $('custName').value.trim();
+        const custDoc = $('custDocNum').value.trim();
+        if (issueInvoice && (!custName || !custDoc)) {
+          alert('Para emitir factura debes ingresar al menos el nombre y el número de documento del cliente.');
+          return;
+        }
+
+        const customer = saveCurrentCustomer(true);
+        const curr = $('currency').value;
+        let subtotal = 0, vat = 0, total = 0, cost = 0, units = 0;
+
+        state.currentSaleLines.forEach((l) => {
+          const s = roundByCurrency(l.qty * l.precioUnit, curr);
+          const v = roundByCurrency(s * (l.ivaPct / 100), curr);
+          subtotal += s;
+          vat += v;
+          total += roundByCurrency(s + v, curr);
+          cost += roundByCurrency(l.qty * l.costoUnit, curr);
+          units += l.qty;
+        });
+
+        const profit = roundByCurrency(subtotal - cost, curr);
+        let saleObj;
+
+        if (state.editingSaleId) {
+          const idx = state.sales.findIndex((s) => s.id === state.editingSaleId);
+          const prev = state.sales[idx];
+          saleObj = {
+            ...prev,
+            date: $('saleDate').value || todayISO(),
+            paymentMethod: $('salePayment').value,
+            notes: $('saleNotes').value.trim(),
+            customer,
+            lines: JSON.parse(JSON.stringify(state.currentSaleLines)),
+            units,
+            subtotal,
+            vat,
+            total,
+            cost,
+            profit,
+            invoiceNumber: issueInvoice && !prev.invoiceNumber ? getNextInvoiceNumber() : prev.invoiceNumber
+          };
+          state.sales[idx] = saleObj;
+          state.editingSaleId = null;
+        } else {
+          saleObj = {
+            id: 'sale_' + Date.now(),
+            saleNumber: getNextSaleNumber(),
+            invoiceNumber: issueInvoice ? getNextInvoiceNumber() : '',
+            date: $('saleDate').value || todayISO(),
+            paymentMethod: $('salePayment').value,
+            notes: $('saleNotes').value.trim(),
+            customer,
+            lines: JSON.parse(JSON.stringify(state.currentSaleLines)),
+            currency: curr,
+            units,
+            subtotal,
+            vat,
+            total,
+            cost,
+            profit,
+            voided: false
+          };
+          state.sales.unshift(saleObj);
+        }
+
+        saveLS(STORAGE_KEYS.sales, state.sales);
+        updateInvoicePreview();
+        renderSalesHistory();
+        clearSaleForm();
+        autoSyncDriveIfConnected();
+
+        if (issueInvoice) {
+          generateInvoicePdf(saleObj);
+        } else {
+          alert(`Venta ${saleObj.saleNumber} registrada correctamente.`);
+        }
+      }
+
+      function clearSaleForm() {
+        state.currentSaleLines = [];
+        state.editingSaleId = null;
+        $('saleDate').value = todayISO();
+        $('saleNotes').value = '';
+        renderSaleLines();
+      }
+
+      $('btnRegisterSale').addEventListener('click', () => submitSale(false));
+      $('btnRegisterAndInvoice').addEventListener('click', () => submitSale(true));
+      $('btnClearSaleForm').addEventListener('click', clearSaleForm);
+      $('btnGoToSummary').addEventListener('click', () => activateTab('tab-summary'));
+
+      // Historial de ventas
+      function renderSalesHistory() {
+        const container = $('salesHistoryList');
+        container.innerHTML = '';
+        const slice = state.sales.slice(0, state.salesVisibleLimit);
+
+        if (!slice.length) {
+          container.innerHTML = '<p class="help-text">Aún no hay ventas registradas.</p>';
+          $('btnShowMoreSales').style.display = 'none';
+          return;
+        }
+
+        slice.forEach((sale) => {
+          const card = document.createElement('div');
+          card.className = `sale-card ${sale.voided ? 'voided' : ''}`;
+          const curr = sale.currency || 'COP';
+          card.innerHTML = `
+            <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
+              <div>
+                <strong>${sale.saleNumber}</strong> ${sale.invoiceNumber ? `<span class="badge">${sale.invoiceNumber}</span>` : ''}
+                · <span>${sale.date}</span> · <strong>${sale.customer.nombre}</strong>
+              </div>
+              <div class="mono">
+                Total: <strong>${formatMoney(sale.total, curr)}</strong> · Ganancia: <strong>${formatMoney(sale.profit, curr)}</strong>
+              </div>
+            </div>
+            <div class="help-text" style="margin-top:4px">Pago: ${sale.paymentMethod} · ${sale.units} unidades</div>
+            <details style="margin-top:6px">
+              <summary style="cursor:pointer;font-size:0.84rem;color:var(--accent)">Ver productos</summary>
+              <ul style="margin:6px 0 0 18px;font-size:0.84rem">
+                ${sale.lines.map((l) => `<li>${l.qty} × ${l.nombre} (${formatMoney(l.precioUnit, curr)} + IVA ${l.ivaPct}%)</li>`).join('')}
+              </ul>
+            </details>
+            ${!sale.voided ? `
+              <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-inv">${sale.invoiceNumber ? 'Descargar factura' : 'Emitir factura'}</button>
+                <button type="button" class="btn btn-sm btn-edit">Editar</button>
+                <button type="button" class="btn btn-danger btn-sm btn-void">Anular</button>
+              </div>
+            ` : '<div class="help-text" style="color:var(--danger);margin-top:4px">Venta anulada</div>'}
+          `;
+
+          if (!sale.voided) {
+            card.querySelector('.btn-inv').addEventListener('click', () => {
+              if (!sale.invoiceNumber) {
+                if (!sale.customer.nombre || !sale.customer.numDoc) {
+                  alert('Edita la venta y completa el nombre y documento del cliente para emitir factura.');
+                  return;
+                }
+                sale.invoiceNumber = getNextInvoiceNumber();
+                saveLS(STORAGE_KEYS.sales, state.sales);
+                updateInvoicePreview();
+                renderSalesHistory();
+                autoSyncDriveIfConnected();
+              }
+              generateInvoicePdf(sale);
+            });
+
+            card.querySelector('.btn-edit').addEventListener('click', () => {
+              state.editingSaleId = sale.id;
+              $('custName').value = sale.customer.nombre;
+              $('custDocType').value = sale.customer.tipoDoc;
+              $('custDocNum').value = sale.customer.numDoc;
+              $('custEmail').value = sale.customer.correo || '';
+              $('custPhone').value = sale.customer.telefono || '';
+              $('custAddress').value = sale.customer.direccion || '';
+              $('custCity').value = sale.customer.ciudad || '';
+              $('saleDate').value = sale.date;
+              $('salePayment').value = sale.paymentMethod;
+              $('saleNotes').value = sale.notes || '';
+              state.currentSaleLines = JSON.parse(JSON.stringify(sale.lines));
+              renderSaleLines();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            let voidArmed = false;
+            const voidBtn = card.querySelector('.btn-void');
+            voidBtn.addEventListener('click', () => {
+              if (!voidArmed) {
+                voidArmed = true;
+                voidBtn.textContent = 'Confirmar anulación';
+                voidBtn.classList.add('confirming');
+                return;
+              }
+              sale.voided = true;
+              saveLS(STORAGE_KEYS.sales, state.sales);
+              renderSalesHistory();
+              autoSyncDriveIfConnected();
+            });
+          }
+
+          container.appendChild(card);
+        });
+
+        $('btnShowMoreSales').style.display = state.sales.length > state.salesVisibleLimit ? 'inline-flex' : 'none';
+      }
+
+      $('btnShowMoreSales').addEventListener('click', () => {
+        state.salesVisibleLimit += 20;
+        renderSalesHistory();
+      });
+
+      // ==================== PESTAÑA 3: RESUMEN Y GRÁFICOS SVG ====================
+      function applyDatePreset(rangeKey) {
+        state.activeDateRange = rangeKey;
+        document.querySelectorAll('.pill-btn').forEach((b) => {
+          b.classList.toggle('active', b.dataset.range === rangeKey);
+        });
+
+        const now = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const toStr = fmt(now);
+        let fromStr = '';
+
+        if (rangeKey === 'today') {
+          fromStr = toStr;
+        } else if (rangeKey === '7d') {
+          const d = new Date(now);
+          d.setDate(d.getDate() - 6);
+          fromStr = fmt(d);
+        } else if (rangeKey === '30d') {
+          const d = new Date(now);
+          d.setDate(d.getDate() - 29);
+          fromStr = fmt(d);
+        } else if (rangeKey === 'month') {
+          fromStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+        } else if (rangeKey === '90d') {
+          const d = new Date(now);
+          d.setDate(d.getDate() - 89);
+          fromStr = fmt(d);
+        } else if (rangeKey === 'year') {
+          fromStr = `${now.getFullYear()}-01-01`;
+        } else {
+          fromStr = '';
+        }
+
+        $('filterFrom').value = fromStr;
+        $('filterTo').value = rangeKey === 'all' ? '' : toStr;
+        renderSummary();
+      }
+
+      document.querySelectorAll('.pill-btn').forEach((btn) => {
+        btn.addEventListener('click', () => applyDatePreset(btn.dataset.range));
+      });
+
+      ['filterFrom', 'filterTo'].forEach((id) => {
+        $(id).addEventListener('change', () => {
+          document.querySelectorAll('.pill-btn').forEach((b) => b.classList.remove('active'));
+          renderSummary();
+        });
+      });
+
+      $('btnToggleSummaryTable').addEventListener('click', () => {
+        state.summaryAsTable = !state.summaryAsTable;
+        $('btnToggleSummaryTable').textContent = state.summaryAsTable ? 'Ver gráficos' : 'Ver datos en tabla';
+        renderSummary();
+      });
+
+      function formatKAxis(v) {
+        if (v === 0) return '0';
+        if (Math.abs(v) >= 1000) return `${Math.round(v / 1000)} k`;
+        return String(Math.round(v));
+      }
+
+      function renderSummary() {
+        const from = $('filterFrom').value;
+        const to = $('filterTo').value;
+        const curr = $('currency').value;
+
+        const validSales = state.sales.filter((s) => {
+          if (s.voided) return false;
+          if (from && s.date < from) return false;
+          if (to && s.date > to) return false;
+          return true;
+        });
+
+        $('summaryRangeInfo').textContent = `Rango: ${from || 'Inicio'} a ${to || 'Hoy'} · No cuentan las ventas anuladas. La ganancia es el subtotal sin IVA menos el costo de producción.`;
+
+        if (!validSales.length) {
+          $('summaryEmptyMsg').style.display = 'block';
+          $('summaryContent').style.display = 'none';
+          return;
+        }
+
+        $('summaryEmptyMsg').style.display = 'none';
+        $('summaryContent').style.display = 'block';
+
+        let totalNoVat = 0, totalWithVat = 0, totalUnits = 0, totalProfit = 0, totalVat = 0;
+        const byDate = {};
+        const prodUnits = {};
+        const prodProfit = {};
+
+        validSales.forEach((s) => {
+          totalNoVat += s.subtotal;
+          totalWithVat += s.total;
+          totalUnits += s.units;
+          totalProfit += s.profit;
+          totalVat += s.vat;
+
+          if (!byDate[s.date]) byDate[s.date] = { sales: 0, profit: 0 };
+          byDate[s.date].sales += s.subtotal;
+          byDate[s.date].profit += s.profit;
+
+          s.lines.forEach((l) => {
+            const sub = l.qty * l.precioUnit;
+            const prof = sub - l.qty * l.costoUnit;
+            prodUnits[l.nombre] = (prodUnits[l.nombre] || 0) + l.qty;
+            prodProfit[l.nombre] = (prodProfit[l.nombre] || 0) + prof;
+          });
+        });
+
+        const marginPct = totalNoVat > 0 ? ((totalProfit / totalNoVat) * 100).toFixed(1) : '0.0';
+        $('sumSalesNoVat').textContent = formatMoney(totalNoVat, curr);
+        $('sumSalesWithVat').textContent = formatMoney(totalWithVat, curr);
+        $('sumUnits').textContent = totalUnits;
+        $('sumSalesCount').textContent = validSales.length;
+        $('sumProfit').textContent = formatMoney(totalProfit, curr);
+        $('sumMargin').textContent = `${marginPct} %`;
+        $('sumVat').textContent = formatMoney(totalVat, curr);
+
+        // Construir serie de tiempo rellenando días vacíos en 0
+        const dates = Object.keys(byDate).sort();
+        const startD = from ? new Date(from + 'T00:00:00') : new Date(dates[0] + 'T00:00:00');
+        const endD = to ? new Date(to + 'T00:00:00') : new Date(dates[dates.length - 1] + 'T00:00:00');
+        const timeSeries = [];
+        const cursor = new Date(startD);
+        let guard = 0;
+        while (cursor <= endD && guard < 400) {
+          const iso = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+          timeSeries.push({
+            label: iso.slice(5),
+            sales: byDate[iso]?.sales || 0,
+            profit: byDate[iso]?.profit || 0
+          });
+          cursor.setDate(cursor.getDate() + 1);
+          guard++;
+        }
+
+        const topUnitsArr = Object.entries(prodUnits).sort((a, b) => b[1] - a[1]).slice(0, 8);
+        const topProfitArr = Object.entries(prodProfit).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+        if (state.summaryAsTable) {
+          $('chartsContainer').style.display = 'none';
+          $('tablesContainer').style.display = 'block';
+          $('tablesContainer').innerHTML = `
+            <h4>Ventas y ganancia por fecha</h4>
+            <table class="data-table"><thead><tr><th>Fecha</th><th>Ventas sin IVA</th><th>Ganancia</th></tr></thead>
+            <tbody>${timeSeries.map((r) => `<tr><td>${r.label}</td><td class="mono">${formatMoney(r.sales, curr)}</td><td class="mono">${formatMoney(r.profit, curr)}</td></tr>`).join('')}</tbody></table>
+            <h4 style="margin-top:14px">Top productos vendidos</h4>
+            <table class="data-table"><thead><tr><th>Producto</th><th>Unidades</th><th>Ganancia</th></tr></thead>
+            <tbody>${topUnitsArr.map(([name, u]) => `<tr><td>${name}</td><td class="mono">${u}</td><td class="mono">${formatMoney(prodProfit[name] || 0, curr)}</td></tr>`).join('')}</tbody></table>
+          `;
+        } else {
+          $('chartsContainer').style.display = 'block';
+          $('tablesContainer').style.display = 'none';
+          renderLineChartSVG($('chartTime'), timeSeries, curr);
+          renderHorizBarSVG($('chartTopUnits'), topUnitsArr, false, curr);
+          renderHorizBarSVG($('chartTopProfit'), topProfitArr, true, curr);
+        }
+      }
+
+      function renderLineChartSVG(container, series, curr) {
+        const w = 640, h = 210, padL = 52, padR = 16, padT = 24, padB = 30;
+        const maxVal = Math.max(10000, ...series.map((s) => Math.max(s.sales, s.profit)));
+        const plotW = w - padL - padR;
+        const plotH = h - padT - padB;
+        const stepX = series.length > 1 ? plotW / (series.length - 1) : plotW;
+
+        const ptsSales = series.map((s, i) => `${padL + i * stepX},${padT + plotH - (s.sales / maxVal) * plotH}`).join(' ');
+        const ptsProfit = series.map((s, i) => `${padL + i * stepX},${padT + plotH - (s.profit / maxVal) * plotH}`).join(' ');
+
+        const yTicks = [0, maxVal / 2, maxVal];
+        container.innerHTML = `
+          <svg class="chart-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Gráfico de ventas y ganancia en el tiempo">
+            ${yTicks.map((tv) => {
+              const y = padT + plotH - (tv / maxVal) * plotH;
+              return `<line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="var(--border)" stroke-dasharray="3,3" />
+                      <text x="${padL - 6}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--text-muted)">${formatKAxis(tv)}</text>`;
+            }).join('')}
+            <polyline fill="none" stroke="var(--c-filamento)" stroke-width="2" points="${ptsSales}" />
+            <polyline fill="none" stroke="var(--c-mano)" stroke-width="2" points="${ptsProfit}" />
+            ${series.map((s, i) => {
+              const cx = padL + i * stepX;
+              const cyS = padT + plotH - (s.sales / maxVal) * plotH;
+              return `<circle cx="${cx}" cy="${cyS}" r="4" fill="var(--c-filamento)" tabindex="0">
+                        <title>${s.label}: Ventas ${formatMoney(s.sales, curr)} | Ganancia ${formatMoney(s.profit, curr)}</title>
+                      </circle>`;
+            }).join('')}
+            <text x="${padL}" y="14" font-size="11" fill="var(--c-filamento)">■ Ventas sin IVA</text>
+            <text x="${padL + 115}" y="14" font-size="11" fill="var(--c-mano)">■ Ganancia</text>
+          </svg>
+        `;
+      }
+
+      function renderHorizBarSVG(container, pairs, isMoney, curr) {
+        if (!pairs.length) {
+          container.innerHTML = '<p class="help-text">Sin datos.</p>';
+          return;
+        }
+        const w = 640, rowH = 26, padL = 170, padR = 70;
+        const h = pairs.length * rowH + 16;
+        const maxVal = Math.max(1, ...pairs.map((p) => p[1]));
+        const barArea = w - padL - padR;
+
+        container.innerHTML = `
+          <svg class="chart-svg" viewBox="0 0 ${w} ${h}" role="img">
+            ${pairs.map(([label, val], idx) => {
+              const y = idx * rowH + 8;
+              const bw = Math.max(2, (val / maxVal) * barArea);
+              const valText = isMoney ? formatMoney(val, curr) : `${val} u.`;
+              return `
+                <text x="${padL - 8}" y="${y + 14}" text-anchor="end" font-size="11" fill="var(--text)">${String(label).slice(0, 24)}</text>
+                <rect x="${padL}" y="${y + 3}" width="${bw}" height="15" rx="4" fill="${isMoney ? 'var(--c-mano)' : 'var(--c-luz)'}">
+                  <title>${label}: ${valText}</title>
+                </rect>
+                <text x="${padL + bw + 6}" y="${y + 14}" font-size="10.5" fill="var(--text-muted)">${valText}</text>
+              `;
+            }).join('')}
+          </svg>
+        `;
+      }
+
+      // ==================== INTEGRACIÓN GOOGLE DRIVE (OAUTH 2.0) + JSON ====================
+      let driveAccessToken = null;
+      const DRIVE_FOLDER_NAME = 'Pendjadas_Funcionales_3D';
+      const DRIVE_FILE_NAME = 'pendjadas_3d_backup.json';
+
+      function buildFullBackupPayload() {
+        return {
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          company: loadLS(STORAGE_KEYS.company, {}),
+          calc: loadLS(STORAGE_KEYS.calc, {}),
+          catalog: state.catalog,
+          sales: state.sales,
+          customers: state.customers,
+          invSettings: state.invSettings,
+          photos: state.photos
+        };
+      }
+
+      function restoreFullBackupPayload(data) {
+        if (!data || typeof data !== 'object') throw new Error('Archivo inválido');
+        if (data.company) saveLS(STORAGE_KEYS.company, data.company);
+        if (data.calc) saveLS(STORAGE_KEYS.calc, data.calc);
+        if (Array.isArray(data.catalog)) {
+          state.catalog = data.catalog;
+          saveLS(STORAGE_KEYS.catalog, state.catalog);
+        }
+        if (Array.isArray(data.sales)) {
+          state.sales = data.sales;
+          saveLS(STORAGE_KEYS.sales, state.sales);
+        }
+        if (Array.isArray(data.customers)) {
+          state.customers = data.customers;
+          saveLS(STORAGE_KEYS.customers, state.customers);
+        }
+        if (data.invSettings) {
+          state.invSettings = data.invSettings;
+          saveLS(STORAGE_KEYS.invSettings, state.invSettings);
+        }
+        if (Array.isArray(data.photos)) {
+          state.photos = data.photos.slice(0, 8);
+        }
+        initAppFromStorage();
+      }
+
+      $('btnExportJson').addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(buildFullBackupPayload(), null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `Respaldo-Pendjadas-3D-${todayISO()}.json`;
+        a.click();
+      });
+
+      $('btnImportJson').addEventListener('click', () => $('importJsonInput').click());
+      $('importJsonInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const r = new FileReader();
+        r.onload = () => {
+          try {
+            restoreFullBackupPayload(JSON.parse(r.result));
+            alert('Respaldo restaurado correctamente.');
+          } catch {
+            alert('El archivo seleccionado no es un respaldo válido.');
+          }
+        };
+        r.readAsText(file);
+      });
+
+      async function driveFetch(url, options = {}) {
+        const res = await fetch(url, {
+          ...options,
+          headers: {
+            Authorization: `Bearer ${driveAccessToken}`,
+            ...(options.headers || {})
+          }
+        });
+        if (!res.ok) throw new Error(`Error Drive HTTP ${res.status}`);
+        return res;
+      }
+
+      async function getOrCreateDriveFolder() {
+        const q = encodeURIComponent(`name='${DRIVE_FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+        const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)`);
+        const json = await res.json();
+        if (json.files && json.files.length > 0) return json.files[0].id;
+
+        const createRes = await driveFetch('https://www.googleapis.com/drive/v3/files', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: DRIVE_FOLDER_NAME,
+            mimeType: 'application/vnd.google-apps.folder'
+          })
+        });
+        const created = await createRes.json();
+        return created.id;
+      }
+
+      async function uploadBackupToDrive(silent = false) {
+        if (!driveAccessToken) return;
+        try {
+          $('driveStatusText').textContent = 'Google Drive: Guardando cambios...';
+          const folderId = await getOrCreateDriveFolder();
+          const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and '${folderId}' in parents and trashed=false`);
+          const searchRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
+          const searchJson = await searchRes.json();
+          const existingFileId = searchJson.files && searchJson.files[0] ? searchJson.files[0].id : null;
+
+          const metadata = existingFileId
+            ? { name: DRIVE_FILE_NAME }
+            : { name: DRIVE_FILE_NAME, parents: [folderId] };
+
+          const boundary = '-------pendjadas3dboundary';
+          const body =
+            `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+            JSON.stringify(metadata) +
+            `\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n` +
+            JSON.stringify(buildFullBackupPayload()) +
+            `\r\n--${boundary}--`;
+
+          const url = existingFileId
+            ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
+            : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+
+          await driveFetch(url, {
+            method: existingFileId ? 'PATCH' : 'POST',
+            headers: { 'Content-Type': `multipart/related; boundary="${boundary}"` },
+            body
+          });
+
+          $('driveStatusText').textContent = `Google Drive: Sincronizado (${new Date().toLocaleTimeString()})`;
+          if (!silent) alert('Todos los datos, fotos y ventas se guardaron en tu Google Drive.');
+        } catch (err) {
+          console.error(err);
+          $('driveStatusText').textContent = 'Google Drive: Error al subir respaldo';
+          if (!silent) alert('No se pudo subir el respaldo a Drive. Revisa tu conexión o vuelve a conectar.');
+        }
+      }
+
+      async function downloadBackupFromDrive() {
+        if (!driveAccessToken) return;
+        try {
+          $('driveStatusText').textContent = 'Google Drive: Descargando datos...';
+          const folderId = await getOrCreateDriveFolder();
+          const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and '${folderId}' in parents and trashed=false`);
+          const searchRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)`);
+          const searchJson = await searchRes.json();
+          if (!searchJson.files || !searchJson.files.length) {
+            alert('Aún no hay un respaldo guardado en tu carpeta de Google Drive. Pulsa "Subir a Drive" primero.');
+            $('driveStatusText').textContent = 'Google Drive: Conectado (sin archivo previo)';
+            return;
+          }
+          const fileId = searchJson.files[0].id;
+          const fileRes = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+          const data = await fileRes.json();
+          restoreFullBackupPayload(data);
+          $('driveStatusText').textContent = 'Google Drive: Datos restaurados desde la nube';
+          alert('Datos restaurados desde Google Drive.');
+        } catch (err) {
+          console.error(err);
+          alert('Error al descargar los datos desde Google Drive.');
+        }
+      }
+
+      function autoSyncDriveIfConnected() {
+        if (driveAccessToken) uploadBackupToDrive(true);
+      }
+
+      $('btnConnectDrive').addEventListener('click', () => {
+        const clientId = $('googleClientId').value.trim();
+        if (!clientId) {
+          alert('Pega primero tu Google OAuth Client ID.');
+          return;
+        }
+        saveLS(STORAGE_KEYS.driveClientId, clientId);
+        if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
+          alert('La librería de Google Identity aún está cargando. Espera 2 segundos e intenta de nuevo.');
+          return;
+        }
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'https://www.googleapis.com/auth/drive.file',
+          callback: (resp) => {
+            if (resp && resp.access_token) {
+              driveAccessToken = resp.access_token;
+              $('driveDot').classList.add('connected');
+              $('driveStatusText').textContent = 'Google Drive: Conectado';
+              $('btnSyncUpDrive').style.display = 'inline-flex';
+              $('btnSyncDownDrive').style.display = 'inline-flex';
+            }
+          }
+        });
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      });
+
+      $('btnSyncUpDrive').addEventListener('click', () => uploadBackupToDrive(false));
+      $('btnSyncDownDrive').addEventListener('click', downloadBackupFromDrive);
+
+      // ==================== INICIALIZACIÓN ====================
+      function initAppFromStorage() {
+        $('googleClientId').value = loadLS(STORAGE_KEYS.driveClientId, '');
+
+        const comp = loadLS(STORAGE_KEYS.company, {});
+        if (comp.companyName) $('companyName').value = comp.companyName;
+        if (comp.brandColor) $('brandColor').value = comp.brandColor;
+        if (comp.companyContact) $('companyContact').value = comp.companyContact;
+        if (comp.pdfFontChoice) $('pdfFontChoice').value = comp.pdfFontChoice;
+        if (comp.quoteFooterText) $('quoteFooterText').value = comp.quoteFooterText;
+        if (comp.logoDataUrl) {
+          state.logoDataUrl = comp.logoDataUrl;
+          $('logoPreviewImg').src = state.logoDataUrl;
+          $('logoPreviewBox').style.display = 'flex';
+          $('btnRemoveLogo').style.display = 'inline-flex';
+        }
+        $('headerCompanyBadge').textContent = $('companyName').value || "Pend'jadas Funcionales";
+        $('quoteNumber').value = `COT-${todayCompact()}`;
+
+        const calc = loadLS(STORAGE_KEYS.calc, null);
+        if (calc) {
+          if (calc.jobName !== undefined) $('jobName').value = calc.jobName;
+          if (calc.internalCode !== undefined) $('internalCode').value = calc.internalCode;
+          if (calc.barcodeValue !== undefined) $('barcodeValue').value = calc.barcodeValue;
+          $('showInternalCodeInQuote').checked = Boolean(calc.showInternalCodeInQuote);
+          if (calc.currency) $('currency').value = calc.currency;
+          if (calc.timeHours !== undefined) $('timeHours').value = calc.timeHours;
+          if (calc.timeMinutes !== undefined) $('timeMinutes').value = calc.timeMinutes;
+          if (calc.filamentGrams !== undefined) $('filamentGrams').value = calc.filamentGrams;
+          if (calc.filamentType) $('filamentType').value = calc.filamentType;
+          if (calc.spoolPrice !== undefined) $('spoolPrice').value = calc.spoolPrice;
+          if (calc.spoolWeight !== undefined) $('spoolWeight').value = calc.spoolWeight;
+          if (calc.filamentMargin !== undefined) {
+            $('filamentMargin').value = calc.filamentMargin;
+            $('filamentMarginSlider').value = calc.filamentMargin;
+          }
+          if (calc.printerSelect) $('printerSelect').value = calc.printerSelect;
+          if (calc.printerWatts !== undefined) $('printerWatts').value = calc.printerWatts;
+          if (calc.kwhCost !== undefined) $('kwhCost').value = calc.kwhCost;
+          if (calc.prepMinutes !== undefined) $('prepMinutes').value = calc.prepMinutes;
+          if (calc.prepRate !== undefined) $('prepRate').value = calc.prepRate;
+          if (calc.postMinutes !== undefined) $('postMinutes').value = calc.postMinutes;
+          if (calc.postRate !== undefined) $('postRate').value = calc.postRate;
+          if (calc.printerCost !== undefined) $('printerCost').value = calc.printerCost;
+          if (calc.roiYears !== undefined) {
+            $('roiYears').value = calc.roiYears;
+            $('roiYearsSlider').value = calc.roiYears;
+          }
+          if (calc.dailyUsage !== undefined) {
+            $('dailyUsage').value = calc.dailyUsage;
+            $('dailyUsageSlider').value = calc.dailyUsage;
+          }
+          if (calc.repairPct !== undefined) {
+            $('repairPct').value = calc.repairPct;
+            $('repairPctSlider').value = calc.repairPct;
+          }
+          if (Array.isArray(calc.expenses)) state.expenses = calc.expenses;
+          if (calc.profitPct !== undefined) {
+            $('profitPct').value = calc.profitPct;
+            $('profitPctSlider').value = calc.profitPct;
+          }
+          if (calc.vatPct !== undefined) {
+            $('vatPct').value = calc.vatPct;
+            $('vatPctSlider').value = calc.vatPct;
+          }
+        }
+
+        state.catalog = loadLS(STORAGE_KEYS.catalog, []);
+        state.sales = loadLS(STORAGE_KEYS.sales, []);
+        state.customers = loadLS(STORAGE_KEYS.customers, []);
+        state.invSettings = loadLS(STORAGE_KEYS.invSettings, state.invSettings);
+
+        $('invPrefix').value = state.invSettings.prefix || 'FV';
+        $('invStartNum').value = state.invSettings.startNum || 1;
+        $('invLegalText').value = state.invSettings.legalText || '';
+        $('saleDate').value = todayISO();
+
+        renderExpenses();
+        renderPhotos();
+        refreshCatalogUI();
+        refreshCustomersDropdown();
+        updateInvoicePreview();
+        renderSalesHistory();
+        updateCalcUI();
+        applyDatePreset('30d');
+
+        const savedTab = loadLS(STORAGE_KEYS.activeTab, 'tab-calc');
+        activateTab(savedTab);
+      }
+
+      initAppFromStorage();
+    })();
+  </script>
+</body>
+</html>
